@@ -1,4 +1,4 @@
-+ FOLER node_modules
+PLUS FOLDER node_modules
 
 ## Project Setup
 
