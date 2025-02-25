@@ -1,5 +1,7 @@
 # my-vue-project
 
+Its important to have a folder node_modules in a project folder
+
 This template should help get you started developing with Vue 3 in Vite.
 
 ## Recommended IDE Setup
