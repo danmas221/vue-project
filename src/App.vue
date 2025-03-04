@@ -1,18 +1,15 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
 </script>
 
 <template>
   <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
-
     <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-
       <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
+        <h2 class="nav-title">Navigation</h2>
+        <RouterLink to="/">Systemuser Zertifikate</RouterLink>
+        <RouterLink to="/mq-certificates">MQ Zertifikate</RouterLink>
+        <RouterLink to="/proxy-certificates">Proxy Zertifikate</RouterLink>
       </nav>
     </div>
   </header>
@@ -21,6 +18,12 @@ import HelloWorld from './components/HelloWorld.vue'
 </template>
 
 <style scoped>
+body {
+  background-color: #ffffff; /* Weißer Hintergrund */
+  font-family: 'Roboto', sans-serif;
+  color: #000000;
+}
+
 header {
   line-height: 1.5;
   max-height: 100vh;
@@ -32,10 +35,21 @@ header {
 }
 
 nav {
+  border: 2px solid var(--color-border);
+  padding: 1.5rem;
+  border-radius: 8px;
   width: 100%;
   font-size: 12px;
   text-align: center;
   margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+}
+.nav-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 1rem; /* Mehr Abstand zu den Links */
 }
 
 nav a.router-link-exact-active {
@@ -71,15 +85,6 @@ nav a:first-of-type {
     display: flex;
     place-items: flex-start;
     flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
   }
 }
 </style>
