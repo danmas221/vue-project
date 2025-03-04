@@ -1,21 +1,26 @@
+// src/router/index.ts
 import { createRouter, createWebHistory } from 'vue-router'
-import CertificateView from '@/views/CertificateView.vue'
+import Systemuser from '@/views/Systemuser.vue'
+import MQCertificates from '@/views/MQCertificates.vue'
+import ProxyZertifikate from '@/views/ProxyZertifikate.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: CertificateView,
+      name: 'Systemuser',
+      component: Systemuser,
     },
     {
-      path: '/about',
-      name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/AboutView.vue'),
+      path: '/mq-certificates',
+      name: 'mq-certificates',
+      component: MQCertificates,
+    },
+    {
+      path: '/proxy-certificates', // Definiere den Pfad für die neue Route
+      name: 'ProxyZertifikate',
+      component: ProxyZertifikate,
     },
   ],
 })
