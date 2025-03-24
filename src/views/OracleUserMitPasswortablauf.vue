@@ -1,47 +1,44 @@
 <template>
   <div>
-    <h1>Übersicht Proxy Zertifikate</h1>
+    <h1>Oracle User mit Passwortablauf</h1>
 
     <!-- Filter -->
     <input v-model="searchSystem" placeholder="Filter by System" />
     <input v-model="searchStage" placeholder="Filter by Stage" />
-    <input v-model="searchZone" placeholder="Filter by Zone" />
 
     <!-- Sortier-Button -->
     <button @click="toggleSortOrder">
       Sortiere nach Gültigkeit ({{ sortOrder === 'asc' ? 'Aufsteigend' : 'Absteigend' }})
     </button>
 
-    <!-- Add New Certificate Button -->
-    <button @click="openModal(null)" class="add-button">Add New Proxy Certificate</button>
+    <!-- Add New User Button -->
+    <button @click="openModal(null)" class="add-button">Add New Oracle User</button>
 
-    <!-- New Certificate Modal -->
+    <!-- New User Modal -->
     <div v-if="showModal" class="modal">
       <div class="modal-content">
-        <h2>{{ editingCertificate ? 'Edit Proxy Certificate' : 'Add New Proxy Certificate' }}</h2>
+        <h2>{{ editingUser ? 'Edit Oracle User' : 'Add New Oracle User' }}</h2>
+
         <!-- Eingaben -->
         <label>System:</label>
-        <input v-model="newCertificate.systemStage.system" type="text" />
+        <input v-model="newUser.systemStage.system" type="text" />
 
         <label>Stage:</label>
-        <input v-model="newCertificate.systemStage.stage" type="text" />
+        <input v-model="newUser.systemStage.stage" type="text" />
 
-        <label>Zone:</label>
-        <input v-model="newCertificate.zone" type="text" />
+        <label>Oracle User:</label>
+        <input v-model="newUser.oracleUser" type="text" />
 
         <label>Server:</label>
-        <input v-model="newCertificate.server" type="text" />
-
-        <label>Installationsverzeichnis:</label>
-        <input v-model="newCertificate.installationsverzeichnis" type="text" />
-
-        <label>Zertifikatsname:</label>
-        <input v-model="newCertificate.zertifikatsname" type="text" />
+        <input v-model="newUser.server" type="text" />
 
         <label>Gültigkeit:</label>
-        <input v-model="newCertificate.gueltigkeit" type="date" />
+        <input v-model="newUser.gueltigkeit" type="date" />
 
-        <button @click="saveCertificate">Save</button>
+        <label>Zweck:</label>
+        <input v-model="newUser.zweck" type="text" />
+
+        <button @click="saveUser">Save</button>
         <button @click="showModal = false" class="cancel-button">Cancel</button>
       </div>
     </div>
@@ -58,11 +55,10 @@
         <tr v-for="entry in sortedEntries" :key="entry.id">
           <td>{{ entry.system }}</td>
           <td>{{ entry.stage }}</td>
-          <td>{{ entry.zone }}</td>
+          <td>{{ entry.oracleUser }}</td>
           <td>{{ entry.server }}</td>
-          <td>{{ entry.installationsverzeichnis }}</td>
-          <td>{{ entry.zertifikatsname }}</td>
           <td>{{ entry.gueltigkeit }}</td>
+          <td>{{ entry.zweck }}</td>
           <td>
             <button @click="openModal(entry)">Bearbeiten</button>
             <button @click="deleteEntry(entry.id)" class="delete-button">Löschen</button>
@@ -76,51 +72,49 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 
-// Devstack-Einträge (alle bigtable-Einträge) werden geladen – wir filtern nach Typ "Proxy Zertifikate"
+// Oracle User mit Passwortablauf-Daten aus der API (angenommen in der Tabelle bigtable mit Typ "Oracle User mit Passwortablauf")
 const entries = ref([])
-// Mapping-Daten aus systemstage
+// SystemStage-Mapping-Daten aus dem API
 const systemStages = ref([])
 
 // Filterfelder
 const searchSystem = ref('')
 const searchStage = ref('')
-const searchZone = ref('')
 const sortOrder = ref('asc')
 const showModal = ref(false)
-const editingCertificate = ref(null)
+const editingUser = ref(null)
 
-// Standardwerte für ein neues Proxy-Zertifikat
-const newCertificate = ref({
+// Standardwerte für einen neuen Oracle User
+const newUser = ref({
   systemStage: { system: '', stage: '' },
-  zone: '',
+  oracleUser: '',
   server: '',
-  installationsverzeichnis: '',
-  zertifikatsname: '',
   gueltigkeit: '',
-  // Typ wird fest auf "Proxy Zertifikate" gesetzt
-  typ: 'Proxy Zertifikate',
+  zweck: '',
+  // Der Typ wird fest auf "Oracle User mit Passwortablauf" gesetzt
+  typ: 'Oracle User mit Passwortablauf',
 })
 
 // Mapping für die Spaltenüberschriften
 const columnMapping = {
   system: 'System',
   stage: 'Stage',
-  zone: 'Zone',
+  oracleUser: 'Oracle User',
   server: 'Server',
-  installationsverzeichnis: 'Installationsverzeichnis',
-  zertifikatsname: 'Zertifikatsname',
   gueltigkeit: 'Gültigkeit',
+  zweck: 'Zweck',
 }
 
-// Beim Laden der Komponente: Hole Devstack-Daten und SystemStage-Mapping
+// Beim Laden der Komponente: Hole die Oracle User und das SystemStage-Mapping
 onMounted(async () => {
   try {
-    const resDevstack = await fetch('http://localhost:8080/api/bigtable')
-    const data = await resDevstack.json()
-    // Filtern: Wir nehmen nur Einträge mit Typ "Proxy Zertifikate"
-    entries.value = data.filter((item) => item.typ === 'Proxy Zertifikate')
+    const resOracle = await fetch('http://localhost:8080/api/bigtable')
+    // Filtern: Wir nehmen nur die Einträge mit Typ "Oracle User mit Passwortablauf"
+    entries.value = (await resOracle.json()).filter(
+      (item) => item.typ === 'Oracle User mit Passwortablauf',
+    )
   } catch (error) {
-    console.error('Error fetching proxy certificates:', error)
+    console.error('Error fetching Oracle users:', error)
   }
   try {
     const resSystemStage = await fetch('http://localhost:8080/api/systemstage')
@@ -135,18 +129,17 @@ const toggleSortOrder = () => {
   sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
 }
 
-// Berechnete Liste: Mapping von System, Stage anhand des verschachtelten Objekts oder über systemID
+// Berechnete Liste: Für jeden Eintrag prüfen wir, ob ein verschachteltes systemStage vorhanden ist.
+// Falls nicht, versuchen wir anhand von entry.systemID (als Zahl) im systemStages-Mapping den korrekten System- und Stage-Wert zu ermitteln.
 const sortedEntries = computed(() => {
   return entries.value
     .map((entry) => {
       let system = ''
       let stage = ''
-      // Verwende vorhandenes systemStage-Objekt, falls vorhanden
       if (entry.systemStage && entry.systemStage.system && entry.systemStage.stage) {
         system = entry.systemStage.system
         stage = entry.systemStage.stage
       } else if (entry.systemID) {
-        // Konvertiere systemID in Zahl, falls es als String vorliegt
         const idNum = Number(entry.systemID)
         const mapping = systemStages.value.find(
           (item) => Number(item.systemID) === idNum || Number(item.id) === idNum,
@@ -160,18 +153,16 @@ const sortedEntries = computed(() => {
         id: entry.id,
         system,
         stage,
-        zone: entry.zone || '',
+        oracleUser: entry.oracleUser || '',
         server: entry.server || '',
-        installationsverzeichnis: entry.installationsverzeichnis || '',
-        zertifikatsname: entry.zertifikatsname || '',
         gueltigkeit: entry.gueltigkeit || '',
+        zweck: entry.zweck || '',
       }
     })
     .filter(
       (entry) =>
         entry.system.toLowerCase().includes(searchSystem.value.toLowerCase()) &&
-        entry.stage.toLowerCase().includes(searchStage.value.toLowerCase()) &&
-        entry.zone.toLowerCase().includes(searchZone.value.toLowerCase()),
+        entry.stage.toLowerCase().includes(searchStage.value.toLowerCase()),
     )
     .sort((a, b) => {
       const dateA = new Date(a.gueltigkeit).getTime()
@@ -180,75 +171,68 @@ const sortedEntries = computed(() => {
     })
 })
 
-// Öffnet das Modal zum Bearbeiten oder Erstellen eines Zertifikats.
+// Öffnet das Modal zum Bearbeiten oder Erstellen eines Oracle Users.
 const openModal = (entry) => {
   if (entry) {
-    editingCertificate.value = entry
-    newCertificate.value = {
+    editingUser.value = entry
+    newUser.value = {
       systemStage: { system: entry.system, stage: entry.stage },
-      zone: entry.zone,
-      systemuser: entry.systemuser, // könnte leer sein, da Proxy-Zertifikate eventuell keinen Systemuser benötigen, je nach Anforderung
+      oracleUser: entry.oracleUser,
       server: entry.server,
-      installationsverzeichnis: entry.installationsverzeichnis,
-      zertifikatsname: entry.zertifikatsname,
       gueltigkeit: entry.gueltigkeit,
-      typ: 'Proxy Zertifikate',
+      zweck: entry.zweck,
+      typ: 'Oracle User mit Passwortablauf',
     }
   } else {
-    editingCertificate.value = null
-    newCertificate.value = {
+    editingUser.value = null
+    newUser.value = {
       systemStage: { system: '', stage: '' },
-      zone: '',
-      systemuser: '',
+      oracleUser: '',
       server: '',
-      installationsverzeichnis: '',
-      zertifikatsname: '',
       gueltigkeit: '',
-      typ: 'Proxy Zertifikate',
+      zweck: '',
+      typ: 'Oracle User mit Passwortablauf',
     }
   }
   showModal.value = true
 }
 
-// Speichert (hinzufügen oder updaten) ein Zertifikat.
-const saveCertificate = async () => {
-  if (editingCertificate.value) {
+// Speichert (hinzufügen oder updaten) einen Oracle User.
+const saveUser = async () => {
+  if (editingUser.value) {
     try {
-      const response = await fetch(
-        `http://localhost:8080/api/bigtable/${editingCertificate.value.id}`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newCertificate.value),
-        },
-      )
+      const response = await fetch(`http://localhost:8080/api/bigtable/${editingUser.value.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser.value),
+      })
       if (response.ok) {
         const updatedEntry = await response.json()
         const index = entries.value.findIndex((e) => e.id === updatedEntry.id)
         entries.value[index] = updatedEntry
       }
     } catch (error) {
-      console.error('Error updating proxy certificate:', error)
+      console.error('Error updating Oracle user:', error)
     }
   } else {
     try {
       const response = await fetch('http://localhost:8080/api/bigtable', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newCertificate.value),
+        body: JSON.stringify(newUser.value),
       })
       if (response.ok) {
         const addedEntry = await response.json()
         entries.value.push(addedEntry)
       }
     } catch (error) {
-      console.error('Error adding proxy certificate:', error)
+      console.error('Error adding Oracle user:', error)
     }
   }
   showModal.value = false
 }
 
-// Löscht ein Zertifikat.
+// Löscht einen Oracle User.
 const deleteEntry = async (id) => {
   try {
     const response = await fetch(`http://localhost:8080/api/bigtable/${id}`, {
@@ -258,62 +242,38 @@ const deleteEntry = async (id) => {
       entries.value = entries.value.filter((e) => e.id !== id)
     }
   } catch (error) {
-    console.error('Error deleting proxy certificate:', error)
+    console.error('Error deleting Oracle user:', error)
   }
 }
 </script>
 
 <style scoped>
-/* Tabellen-Stile */
+h1 {
+  color: #2c3e50;
+}
+input {
+  margin: 5px;
+}
+button {
+  margin: 5px;
+}
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 20px;
 }
 th,
 td {
+  border: 1px solid #ccc;
   padding: 10px;
-  border: 1px solid #ddd;
   text-align: left;
 }
-th {
-  background-color: #9f4141;
-}
-tr:nth-child(even) {
-  background-color: #112417;
-}
-tr:hover {
-  background-color: #21050549;
-}
-
-/* Buttons */
-button {
-  margin: 5px;
-  padding: 7px 12px;
-  background-color: #312525;
-  color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 4px;
-}
-button:hover {
-  background-color: #7e3232;
-}
-/* Add New Certificate Button */
-.add-button {
-  background-color: #28a745;
-}
-.add-button:hover {
-  background-color: #218838;
-}
-/* Modal */
 .modal {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -322,12 +282,20 @@ button:hover {
   background: white;
   padding: 20px;
   border-radius: 5px;
-  width: 300px;
+}
+.add-button,
+.cancel-button,
+.delete-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
 }
 .cancel-button {
-  background-color: red;
+  background-color: #dc3545;
 }
-.cancel-button:hover {
-  background-color: darkred;
+.delete-button {
+  background-color: #dc3545;
 }
 </style>

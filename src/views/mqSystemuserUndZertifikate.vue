@@ -1,11 +1,10 @@
 <template>
   <div>
-    <h1>Übersicht Proxy Zertifikate</h1>
+    <h1>MQ Systemuser und Zertifikate</h1>
 
     <!-- Filter -->
     <input v-model="searchSystem" placeholder="Filter by System" />
     <input v-model="searchStage" placeholder="Filter by Stage" />
-    <input v-model="searchZone" placeholder="Filter by Zone" />
 
     <!-- Sortier-Button -->
     <button @click="toggleSortOrder">
@@ -13,12 +12,13 @@
     </button>
 
     <!-- Add New Certificate Button -->
-    <button @click="openModal(null)" class="add-button">Add New Proxy Certificate</button>
+    <button @click="openModal(null)" class="add-button">Add New MQ Certificate</button>
 
     <!-- New Certificate Modal -->
     <div v-if="showModal" class="modal">
       <div class="modal-content">
-        <h2>{{ editingCertificate ? 'Edit Proxy Certificate' : 'Add New Proxy Certificate' }}</h2>
+        <h2>{{ editingCertificate ? 'Edit MQ Certificate' : 'Add New MQ Certificate' }}</h2>
+
         <!-- Eingaben -->
         <label>System:</label>
         <input v-model="newCertificate.systemStage.system" type="text" />
@@ -26,17 +26,23 @@
         <label>Stage:</label>
         <input v-model="newCertificate.systemStage.stage" type="text" />
 
-        <label>Zone:</label>
-        <input v-model="newCertificate.zone" type="text" />
+        <label>MQ:</label>
+        <input v-model="newCertificate.mq" type="text" />
+
+        <label>Channel:</label>
+        <input v-model="newCertificate.channel" type="text" />
+
+        <label>Systemuser:</label>
+        <input v-model="newCertificate.systemuser" type="text" />
 
         <label>Server:</label>
         <input v-model="newCertificate.server" type="text" />
 
-        <label>Installationsverzeichnis:</label>
-        <input v-model="newCertificate.installationsverzeichnis" type="text" />
-
         <label>Zertifikatsname:</label>
         <input v-model="newCertificate.zertifikatsname" type="text" />
+
+        <label>Issuer:</label>
+        <input v-model="newCertificate.issuer" type="text" />
 
         <label>Gültigkeit:</label>
         <input v-model="newCertificate.gueltigkeit" type="date" />
@@ -58,10 +64,12 @@
         <tr v-for="entry in sortedEntries" :key="entry.id">
           <td>{{ entry.system }}</td>
           <td>{{ entry.stage }}</td>
-          <td>{{ entry.zone }}</td>
+          <td>{{ entry.mq }}</td>
+          <td>{{ entry.channel }}</td>
+          <td>{{ entry.systemuser }}</td>
           <td>{{ entry.server }}</td>
-          <td>{{ entry.installationsverzeichnis }}</td>
           <td>{{ entry.zertifikatsname }}</td>
+          <td>{{ entry.issuer }}</td>
           <td>{{ entry.gueltigkeit }}</td>
           <td>
             <button @click="openModal(entry)">Bearbeiten</button>
@@ -76,51 +84,55 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 
-// Devstack-Einträge (alle bigtable-Einträge) werden geladen – wir filtern nach Typ "Proxy Zertifikate"
+// MQ-Zertifikats-Daten aus der API (angenommen in der Tabelle bigtable mit Typ "MQ Systemuser und Zertifikate")
 const entries = ref([])
-// Mapping-Daten aus systemstage
+// SystemStage-Mapping-Daten aus dem API
 const systemStages = ref([])
 
 // Filterfelder
 const searchSystem = ref('')
 const searchStage = ref('')
-const searchZone = ref('')
 const sortOrder = ref('asc')
 const showModal = ref(false)
 const editingCertificate = ref(null)
 
-// Standardwerte für ein neues Proxy-Zertifikat
+// Standardwerte für ein neues MQ-Zertifikat
 const newCertificate = ref({
   systemStage: { system: '', stage: '' },
-  zone: '',
+  mq: '',
+  channel: '',
+  systemuser: '',
   server: '',
-  installationsverzeichnis: '',
   zertifikatsname: '',
+  issuer: '',
   gueltigkeit: '',
-  // Typ wird fest auf "Proxy Zertifikate" gesetzt
-  typ: 'Proxy Zertifikate',
+  // Der Typ wird fest auf "MQ Systemuser und Zertifikate" gesetzt
+  typ: 'MQ Systemuser und Zertifikate',
 })
 
 // Mapping für die Spaltenüberschriften
 const columnMapping = {
   system: 'System',
   stage: 'Stage',
-  zone: 'Zone',
+  mq: 'MQ',
+  channel: 'Channel',
+  systemuser: 'Systemuser',
   server: 'Server',
-  installationsverzeichnis: 'Installationsverzeichnis',
   zertifikatsname: 'Zertifikatsname',
+  issuer: 'Issuer',
   gueltigkeit: 'Gültigkeit',
 }
 
-// Beim Laden der Komponente: Hole Devstack-Daten und SystemStage-Mapping
+// Beim Laden der Komponente: Hole die MQ-Zertifikate und das SystemStage-Mapping
 onMounted(async () => {
   try {
-    const resDevstack = await fetch('http://localhost:8080/api/bigtable')
-    const data = await resDevstack.json()
-    // Filtern: Wir nehmen nur Einträge mit Typ "Proxy Zertifikate"
-    entries.value = data.filter((item) => item.typ === 'Proxy Zertifikate')
+    const resMQ = await fetch('http://localhost:8080/api/bigtable')
+    // Filtern: Wir nehmen nur die Einträge mit Typ "MQ Systemuser und Zertifikate"
+    entries.value = (await resMQ.json()).filter(
+      (item) => item.typ === 'MQ Systemuser und Zertifikate',
+    )
   } catch (error) {
-    console.error('Error fetching proxy certificates:', error)
+    console.error('Error fetching MQ certificates:', error)
   }
   try {
     const resSystemStage = await fetch('http://localhost:8080/api/systemstage')
@@ -135,18 +147,17 @@ const toggleSortOrder = () => {
   sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
 }
 
-// Berechnete Liste: Mapping von System, Stage anhand des verschachtelten Objekts oder über systemID
+// Berechnete Liste: Für jeden Eintrag prüfen wir, ob ein verschachteltes systemStage vorhanden ist.
+// Falls nicht, versuchen wir anhand von entry.systemID (als Zahl) im systemStages-Mapping den korrekten System- und Stage-Wert zu ermitteln.
 const sortedEntries = computed(() => {
   return entries.value
     .map((entry) => {
       let system = ''
       let stage = ''
-      // Verwende vorhandenes systemStage-Objekt, falls vorhanden
       if (entry.systemStage && entry.systemStage.system && entry.systemStage.stage) {
         system = entry.systemStage.system
         stage = entry.systemStage.stage
       } else if (entry.systemID) {
-        // Konvertiere systemID in Zahl, falls es als String vorliegt
         const idNum = Number(entry.systemID)
         const mapping = systemStages.value.find(
           (item) => Number(item.systemID) === idNum || Number(item.id) === idNum,
@@ -160,18 +171,19 @@ const sortedEntries = computed(() => {
         id: entry.id,
         system,
         stage,
-        zone: entry.zone || '',
+        mq: entry.mq || '',
+        channel: entry.channel || '',
+        systemuser: entry.systemuser || '',
         server: entry.server || '',
-        installationsverzeichnis: entry.installationsverzeichnis || '',
         zertifikatsname: entry.zertifikatsname || '',
+        issuer: entry.issuer || '',
         gueltigkeit: entry.gueltigkeit || '',
       }
     })
     .filter(
       (entry) =>
         entry.system.toLowerCase().includes(searchSystem.value.toLowerCase()) &&
-        entry.stage.toLowerCase().includes(searchStage.value.toLowerCase()) &&
-        entry.zone.toLowerCase().includes(searchZone.value.toLowerCase()),
+        entry.stage.toLowerCase().includes(searchStage.value.toLowerCase()),
     )
     .sort((a, b) => {
       const dateA = new Date(a.gueltigkeit).getTime()
@@ -186,25 +198,27 @@ const openModal = (entry) => {
     editingCertificate.value = entry
     newCertificate.value = {
       systemStage: { system: entry.system, stage: entry.stage },
-      zone: entry.zone,
-      systemuser: entry.systemuser, // könnte leer sein, da Proxy-Zertifikate eventuell keinen Systemuser benötigen, je nach Anforderung
+      mq: entry.mq,
+      channel: entry.channel,
+      systemuser: entry.systemuser,
       server: entry.server,
-      installationsverzeichnis: entry.installationsverzeichnis,
       zertifikatsname: entry.zertifikatsname,
+      issuer: entry.issuer,
       gueltigkeit: entry.gueltigkeit,
-      typ: 'Proxy Zertifikate',
+      typ: 'MQ Systemuser und Zertifikate',
     }
   } else {
     editingCertificate.value = null
     newCertificate.value = {
       systemStage: { system: '', stage: '' },
-      zone: '',
+      mq: '',
+      channel: '',
       systemuser: '',
       server: '',
-      installationsverzeichnis: '',
       zertifikatsname: '',
+      issuer: '',
       gueltigkeit: '',
-      typ: 'Proxy Zertifikate',
+      typ: 'MQ Systemuser und Zertifikate',
     }
   }
   showModal.value = true
@@ -228,7 +242,7 @@ const saveCertificate = async () => {
         entries.value[index] = updatedEntry
       }
     } catch (error) {
-      console.error('Error updating proxy certificate:', error)
+      console.error('Error updating MQ certificate:', error)
     }
   } else {
     try {
@@ -242,7 +256,7 @@ const saveCertificate = async () => {
         entries.value.push(addedEntry)
       }
     } catch (error) {
-      console.error('Error adding proxy certificate:', error)
+      console.error('Error adding MQ certificate:', error)
     }
   }
   showModal.value = false
@@ -258,7 +272,7 @@ const deleteEntry = async (id) => {
       entries.value = entries.value.filter((e) => e.id !== id)
     }
   } catch (error) {
-    console.error('Error deleting proxy certificate:', error)
+    console.error('Error deleting MQ certificate:', error)
   }
 }
 </script>

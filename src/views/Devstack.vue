@@ -1,24 +1,26 @@
 <template>
   <div>
-    <h1>Übersicht Proxy Zertifikate</h1>
+    <h1>Übersicht Devstack</h1>
 
     <!-- Filter -->
     <input v-model="searchSystem" placeholder="Filter by System" />
     <input v-model="searchStage" placeholder="Filter by Stage" />
-    <input v-model="searchZone" placeholder="Filter by Zone" />
 
     <!-- Sortier-Button -->
     <button @click="toggleSortOrder">
-      Sortiere nach Gültigkeit ({{ sortOrder === 'asc' ? 'Aufsteigend' : 'Absteigend' }})
+      Sortiere nach Token Gültigkeit ({{ sortOrder === 'asc' ? 'Aufsteigend' : 'Absteigend' }})
     </button>
 
     <!-- Add New Certificate Button -->
-    <button @click="openModal(null)" class="add-button">Add New Proxy Certificate</button>
+    <button @click="openModal(null)" class="add-button">Add New Devstack Certificate</button>
 
     <!-- New Certificate Modal -->
     <div v-if="showModal" class="modal">
       <div class="modal-content">
-        <h2>{{ editingCertificate ? 'Edit Proxy Certificate' : 'Add New Proxy Certificate' }}</h2>
+        <h2>
+          {{ editingCertificate ? 'Edit Devstack Certificate' : 'Add New Devstack Certificate' }}
+        </h2>
+
         <!-- Eingaben -->
         <label>System:</label>
         <input v-model="newCertificate.systemStage.system" type="text" />
@@ -26,20 +28,29 @@
         <label>Stage:</label>
         <input v-model="newCertificate.systemStage.stage" type="text" />
 
-        <label>Zone:</label>
-        <input v-model="newCertificate.zone" type="text" />
+        <label>Systemuser:</label>
+        <input v-model="newCertificate.systemuser" type="text" />
 
         <label>Server:</label>
         <input v-model="newCertificate.server" type="text" />
 
-        <label>Installationsverzeichnis:</label>
-        <input v-model="newCertificate.installationsverzeichnis" type="text" />
-
         <label>Zertifikatsname:</label>
         <input v-model="newCertificate.zertifikatsname" type="text" />
 
-        <label>Gültigkeit:</label>
-        <input v-model="newCertificate.gueltigkeit" type="date" />
+        <label>Token Gültigkeit:</label>
+        <input v-model="newCertificate.token_gueltigkeit" type="date" />
+
+        <label>Cert Gültigkeit:</label>
+        <input v-model="newCertificate.cert_gueltigkeit" type="date" />
+
+        <label>TAMU Gültigkeit:</label>
+        <input v-model="newCertificate.tamu_gueltigkeit" type="date" />
+
+        <label>ADCS Gültigkeit:</label>
+        <input v-model="newCertificate.adcs_gueltigkeit" type="date" />
+
+        <label>Zweck:</label>
+        <input v-model="newCertificate.zweck" type="text" />
 
         <button @click="saveCertificate">Save</button>
         <button @click="showModal = false" class="cancel-button">Cancel</button>
@@ -58,11 +69,14 @@
         <tr v-for="entry in sortedEntries" :key="entry.id">
           <td>{{ entry.system }}</td>
           <td>{{ entry.stage }}</td>
-          <td>{{ entry.zone }}</td>
+          <td>{{ entry.systemuser }}</td>
           <td>{{ entry.server }}</td>
-          <td>{{ entry.installationsverzeichnis }}</td>
           <td>{{ entry.zertifikatsname }}</td>
-          <td>{{ entry.gueltigkeit }}</td>
+          <td>{{ entry.token_gueltigkeit }}</td>
+          <td>{{ entry.cert_gueltigkeit }}</td>
+          <td>{{ entry.tamu_gueltigkeit }}</td>
+          <td>{{ entry.adcs_gueltigkeit }}</td>
+          <td>{{ entry.zweck }}</td>
           <td>
             <button @click="openModal(entry)">Bearbeiten</button>
             <button @click="deleteEntry(entry.id)" class="delete-button">Löschen</button>
@@ -76,51 +90,52 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 
-// Devstack-Einträge (alle bigtable-Einträge) werden geladen – wir filtern nach Typ "Proxy Zertifikate"
+// Devstack-Datensätze
 const entries = ref([])
-// Mapping-Daten aus systemstage
+// SystemStage-Mapping-Daten
 const systemStages = ref([])
 
 // Filterfelder
 const searchSystem = ref('')
 const searchStage = ref('')
-const searchZone = ref('')
 const sortOrder = ref('asc')
 const showModal = ref(false)
 const editingCertificate = ref(null)
 
-// Standardwerte für ein neues Proxy-Zertifikat
+// Standardwerte für ein neues Devstack-Zertifikat
 const newCertificate = ref({
   systemStage: { system: '', stage: '' },
-  zone: '',
+  systemuser: '',
   server: '',
-  installationsverzeichnis: '',
   zertifikatsname: '',
-  gueltigkeit: '',
-  // Typ wird fest auf "Proxy Zertifikate" gesetzt
-  typ: 'Proxy Zertifikate',
+  token_gueltigkeit: '',
+  cert_gueltigkeit: '',
+  tamu_gueltigkeit: '',
+  adcs_gueltigkeit: '',
+  zweck: '',
 })
 
 // Mapping für die Spaltenüberschriften
 const columnMapping = {
   system: 'System',
   stage: 'Stage',
-  zone: 'Zone',
+  systemuser: 'Systemuser',
   server: 'Server',
-  installationsverzeichnis: 'Installationsverzeichnis',
   zertifikatsname: 'Zertifikatsname',
-  gueltigkeit: 'Gültigkeit',
+  token_gueltigkeit: 'Token Gültigkeit',
+  cert_gueltigkeit: 'Cert Gültigkeit',
+  tamu_gueltigkeit: 'TAMU Gültigkeit',
+  adcs_gueltigkeit: 'ADCS Gültigkeit',
+  zweck: 'Zweck',
 }
 
 // Beim Laden der Komponente: Hole Devstack-Daten und SystemStage-Mapping
 onMounted(async () => {
   try {
-    const resDevstack = await fetch('http://localhost:8080/api/bigtable')
-    const data = await resDevstack.json()
-    // Filtern: Wir nehmen nur Einträge mit Typ "Proxy Zertifikate"
-    entries.value = data.filter((item) => item.typ === 'Proxy Zertifikate')
+    const resDevstack = await fetch('http://localhost:8080/api/devstack')
+    entries.value = await resDevstack.json()
   } catch (error) {
-    console.error('Error fetching proxy certificates:', error)
+    console.error('Error fetching devstack entries:', error)
   }
   try {
     const resSystemStage = await fetch('http://localhost:8080/api/systemstage')
@@ -130,24 +145,26 @@ onMounted(async () => {
   }
 })
 
-// Umschalten der Sortierreihenfolge (Sortierung nach Gültigkeit)
+// Umschalten der Sortierreihenfolge (Sortierung nach Token Gültigkeit)
 const toggleSortOrder = () => {
   sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
 }
 
-// Berechnete Liste: Mapping von System, Stage anhand des verschachtelten Objekts oder über systemID
+// Berechnete Liste: Für jeden Eintrag prüfen wir, ob ein verschachteltes systemStage vorhanden ist.
+// Falls nicht, versuchen wir anhand von entry.systemID im Mapping die Werte zu übernehmen.
 const sortedEntries = computed(() => {
   return entries.value
     .map((entry) => {
       let system = ''
       let stage = ''
-      // Verwende vorhandenes systemStage-Objekt, falls vorhanden
+      // Prüfe, ob bereits ein verschachteltes systemStage-Objekt existiert
       if (entry.systemStage && entry.systemStage.system && entry.systemStage.stage) {
         system = entry.systemStage.system
         stage = entry.systemStage.stage
       } else if (entry.systemID) {
-        // Konvertiere systemID in Zahl, falls es als String vorliegt
+        // Konvertiere entry.systemID zu einer Zahl
         const idNum = Number(entry.systemID)
+        // Suche im Mapping, wobei auch die systemStage-Einträge als Zahl geprüft werden
         const mapping = systemStages.value.find(
           (item) => Number(item.systemID) === idNum || Number(item.id) === idNum,
         )
@@ -160,22 +177,24 @@ const sortedEntries = computed(() => {
         id: entry.id,
         system,
         stage,
-        zone: entry.zone || '',
+        systemuser: entry.systemuser || '',
         server: entry.server || '',
-        installationsverzeichnis: entry.installationsverzeichnis || '',
         zertifikatsname: entry.zertifikatsname || '',
-        gueltigkeit: entry.gueltigkeit || '',
+        token_gueltigkeit: entry.token_gueltigkeit || '',
+        cert_gueltigkeit: entry.cert_gueltigkeit || '',
+        tamu_gueltigkeit: entry.tamu_gueltigkeit || '',
+        adcs_gueltigkeit: entry.adcs_gueltigkeit || '',
+        zweck: entry.zweck || '',
       }
     })
     .filter(
       (entry) =>
         entry.system.toLowerCase().includes(searchSystem.value.toLowerCase()) &&
-        entry.stage.toLowerCase().includes(searchStage.value.toLowerCase()) &&
-        entry.zone.toLowerCase().includes(searchZone.value.toLowerCase()),
+        entry.stage.toLowerCase().includes(searchStage.value.toLowerCase()),
     )
     .sort((a, b) => {
-      const dateA = new Date(a.gueltigkeit).getTime()
-      const dateB = new Date(b.gueltigkeit).getTime()
+      const dateA = new Date(a.token_gueltigkeit).getTime()
+      const dateB = new Date(b.token_gueltigkeit).getTime()
       return sortOrder.value === 'asc' ? dateA - dateB : dateB - dateA
     })
 })
@@ -186,25 +205,27 @@ const openModal = (entry) => {
     editingCertificate.value = entry
     newCertificate.value = {
       systemStage: { system: entry.system, stage: entry.stage },
-      zone: entry.zone,
-      systemuser: entry.systemuser, // könnte leer sein, da Proxy-Zertifikate eventuell keinen Systemuser benötigen, je nach Anforderung
+      systemuser: entry.systemuser,
       server: entry.server,
-      installationsverzeichnis: entry.installationsverzeichnis,
       zertifikatsname: entry.zertifikatsname,
-      gueltigkeit: entry.gueltigkeit,
-      typ: 'Proxy Zertifikate',
+      token_gueltigkeit: entry.token_gueltigkeit,
+      cert_gueltigkeit: entry.cert_gueltigkeit,
+      tamu_gueltigkeit: entry.tamu_gueltigkeit,
+      adcs_gueltigkeit: entry.adcs_gueltigkeit,
+      zweck: entry.zweck,
     }
   } else {
     editingCertificate.value = null
     newCertificate.value = {
       systemStage: { system: '', stage: '' },
-      zone: '',
       systemuser: '',
       server: '',
-      installationsverzeichnis: '',
       zertifikatsname: '',
-      gueltigkeit: '',
-      typ: 'Proxy Zertifikate',
+      token_gueltigkeit: '',
+      cert_gueltigkeit: '',
+      tamu_gueltigkeit: '',
+      adcs_gueltigkeit: '',
+      zweck: '',
     }
   }
   showModal.value = true
@@ -215,7 +236,7 @@ const saveCertificate = async () => {
   if (editingCertificate.value) {
     try {
       const response = await fetch(
-        `http://localhost:8080/api/bigtable/${editingCertificate.value.id}`,
+        `http://localhost:8080/api/devstack/${editingCertificate.value.id}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -228,11 +249,11 @@ const saveCertificate = async () => {
         entries.value[index] = updatedEntry
       }
     } catch (error) {
-      console.error('Error updating proxy certificate:', error)
+      console.error('Error updating devstack entry:', error)
     }
   } else {
     try {
-      const response = await fetch('http://localhost:8080/api/bigtable', {
+      const response = await fetch('http://localhost:8080/api/devstack', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newCertificate.value),
@@ -242,7 +263,7 @@ const saveCertificate = async () => {
         entries.value.push(addedEntry)
       }
     } catch (error) {
-      console.error('Error adding proxy certificate:', error)
+      console.error('Error adding devstack entry:', error)
     }
   }
   showModal.value = false
@@ -251,14 +272,14 @@ const saveCertificate = async () => {
 // Löscht ein Zertifikat.
 const deleteEntry = async (id) => {
   try {
-    const response = await fetch(`http://localhost:8080/api/bigtable/${id}`, {
+    const response = await fetch(`http://localhost:8080/api/devstack/${id}`, {
       method: 'DELETE',
     })
     if (response.ok) {
       entries.value = entries.value.filter((e) => e.id !== id)
     }
   } catch (error) {
-    console.error('Error deleting proxy certificate:', error)
+    console.error('Error deleting devstack entry:', error)
   }
 }
 </script>

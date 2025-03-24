@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h1>Systemuser Zertifikate</h1>
+    <h1>Systemuser und deren Zertifikate</h1>
 
     <!-- Filter -->
     <input v-model="searchSystem" placeholder="Filter by System" />
@@ -8,7 +8,7 @@
 
     <!-- Sortier-Button -->
     <button @click="toggleSortOrder">
-      Sortiere nach Datum ({{ sortOrder === 'asc' ? 'Aufsteigend' : 'Absteigend' }})
+      Sortiere nach Gültigkeit ({{ sortOrder === 'asc' ? 'Aufsteigend' : 'Absteigend' }})
     </button>
 
     <!-- Add New Certificate Button -->
@@ -19,11 +19,15 @@
       <div class="modal-content">
         <h2>{{ editingCertificate ? 'Edit Certificate' : 'Add New Certificate' }}</h2>
 
+        <!-- Hier werden System und Stage in einem verschachtelten Objekt abgelegt -->
         <label>System:</label>
-        <input v-model="newCertificate.system" type="text" />
+        <input v-model="newCertificate.systemStage.system" type="text" />
 
         <label>Stage:</label>
-        <input v-model="newCertificate.stage" type="text" />
+        <input v-model="newCertificate.systemStage.stage" type="text" />
+
+        <label>Systemuser:</label>
+        <input v-model="newCertificate.systemuser" type="text" />
 
         <label>Server:</label>
         <input v-model="newCertificate.server" type="text" />
@@ -33,6 +37,9 @@
 
         <label>Gültigkeit:</label>
         <input v-model="newCertificate.gueltigkeit" type="date" />
+
+        <label>Zweck:</label>
+        <input v-model="newCertificate.zweck" type="text" />
 
         <label>Typ:</label>
         <input v-model="newCertificate.typ" type="text" />
@@ -54,9 +61,14 @@
       </thead>
       <tbody>
         <tr v-for="certificate in sortedCertificates" :key="certificate.id">
-          <td v-for="key in Object.keys(columnMapping)" :key="key">
-            {{ certificate[key] }}
-          </td>
+          <td>{{ certificate.system }}</td>
+          <td>{{ certificate.stage }}</td>
+          <td>{{ certificate.systemuser }}</td>
+          <td>{{ certificate.server }}</td>
+          <td>{{ certificate.zertifikatsname }}</td>
+          <td>{{ certificate.gueltigkeit }}</td>
+          <td>{{ certificate.zweck }}</td>
+          <td>{{ certificate.typ }}</td>
           <td>
             <button @click="openModal(certificate)">Bearbeiten</button>
             <button @click="deleteCertificate(certificate.id)" class="delete-button">
@@ -72,52 +84,83 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 
+// Original-Daten aus der API (BigTable-Datensätze)
 const certificates = ref([])
+
+// Filterfelder
 const searchSystem = ref('')
 const searchStage = ref('')
 const sortOrder = ref('asc')
 const showModal = ref(false)
 const editingCertificate = ref(null)
 
+// Standardwerte für ein neues Zertifikat; der Typ wird automatisch gesetzt.
+// Beachte: System und Stage sind in einem Objekt (systemStage) abgelegt.
 const newCertificate = ref({
-  system: '',
-  stage: '',
+  systemStage: {
+    system: '',
+    stage: '',
+  },
+  systemuser: '',
   server: '',
   zertifikatsname: '',
   gueltigkeit: '',
-  typ: '',
+  zweck: '',
+  typ: 'Systemuser und deren Zertifikate',
 })
 
+// Mapping für die Spaltenüberschriften
 const columnMapping = {
-  id: 'ID',
   system: 'System',
   stage: 'Stage',
+  systemuser: 'Systemuser',
   server: 'Server',
   zertifikatsname: 'Zertifikatsname',
   gueltigkeit: 'Gültigkeit',
+  zweck: 'Zweck',
   typ: 'Typ',
 }
 
+// Beim Laden der Komponente: Hole alle Einträge aus der BigTable-API
 onMounted(async () => {
   try {
-    const response = await fetch('http://localhost:8080/api/certificates')
-    certificates.value = await response.json()
+    const response = await fetch('http://localhost:8080/api/bigtable')
+    const data = await response.json()
+    certificates.value = data
   } catch (error) {
     console.error('Error fetching certificates:', error)
   }
 })
 
+// Umschalten der Sortierreihenfolge
 const toggleSortOrder = () => {
   sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
 }
 
+// Berechnete Liste:
+// 1. Filtere nach dem Typ "Systemuser und deren Zertifikate".
+// 2. Mappe jeden Datensatz, sodass system und stage aus dem verschachtelten systemStage-Objekt gezogen werden
+//    und systemuser direkt.
 const sortedCertificates = computed(() => {
   return certificates.value
+    .filter((certificate) => certificate.typ === 'Systemuser und deren Zertifikate')
+    .map((certificate) => {
+      return {
+        id: certificate.id,
+        system: certificate.systemStage ? certificate.systemStage.system : '',
+        stage: certificate.systemStage ? certificate.systemStage.stage : '',
+        systemuser: certificate.systemuser || '', // systemuser direkt aus dem Zertifikat
+        server: certificate.server,
+        zertifikatsname: certificate.zertifikatsname,
+        gueltigkeit: certificate.gueltigkeit,
+        zweck: certificate.zweck,
+        typ: certificate.typ,
+      }
+    })
     .filter(
-      (certificate) =>
-        certificate.typ === 'Übersicht Systemuser und deren Zertifikate' && // Filter für Systemuser-Zertifikate
-        certificate.system.toLowerCase().includes(searchSystem.value.toLowerCase()) &&
-        certificate.stage.toLowerCase().includes(searchStage.value.toLowerCase()),
+      (cert) =>
+        cert.system.toLowerCase().includes(searchSystem.value.toLowerCase()) &&
+        cert.stage.toLowerCase().includes(searchStage.value.toLowerCase()),
     )
     .sort((a, b) => {
       const dateA = new Date(a.gueltigkeit).getTime()
@@ -126,29 +169,46 @@ const sortedCertificates = computed(() => {
     })
 })
 
+// Öffnet das Modal zum Bearbeiten oder Erstellen eines Zertifikats.
 const openModal = (certificate) => {
   if (certificate) {
     editingCertificate.value = certificate
-    newCertificate.value = { ...certificate }
+    newCertificate.value = {
+      systemStage: {
+        system: certificate.system,
+        stage: certificate.stage,
+      },
+      systemuser: certificate.systemuser,
+      server: certificate.server,
+      zertifikatsname: certificate.zertifikatsname,
+      gueltigkeit: certificate.gueltigkeit,
+      zweck: certificate.zweck,
+      typ: certificate.typ,
+    }
   } else {
     editingCertificate.value = null
     newCertificate.value = {
-      system: '',
-      stage: '',
+      systemStage: {
+        system: '',
+        stage: '',
+      },
+      systemuser: '',
       server: '',
       zertifikatsname: '',
       gueltigkeit: '',
-      typ: '',
+      zweck: '',
+      typ: 'Systemuser und deren Zertifikate',
     }
   }
   showModal.value = true
 }
 
+// Speichert (hinzufügen oder updaten) ein Zertifikat
 const saveCertificate = async () => {
   if (editingCertificate.value) {
     try {
       const response = await fetch(
-        `http://localhost:8080/api/certificates/${editingCertificate.value.id}`,
+        `http://localhost:8080/api/bigtable/${editingCertificate.value.id}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -165,7 +225,7 @@ const saveCertificate = async () => {
     }
   } else {
     try {
-      const response = await fetch('http://localhost:8080/api/certificates', {
+      const response = await fetch('http://localhost:8080/api/bigtable', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newCertificate.value),
@@ -181,9 +241,10 @@ const saveCertificate = async () => {
   showModal.value = false
 }
 
+// Löscht ein Zertifikat
 const deleteCertificate = async (id) => {
   try {
-    const response = await fetch(`http://localhost:8080/api/certificates/${id}`, {
+    const response = await fetch(`http://localhost:8080/api/bigtable/${id}`, {
       method: 'DELETE',
     })
     if (response.ok) {
@@ -228,20 +289,16 @@ button {
   cursor: pointer;
   border-radius: 4px;
 }
-
 button:hover {
   background-color: #7e3232;
 }
-
 /* Add New Certificate Button */
 .add-button {
   background-color: #28a745;
 }
-
 .add-button:hover {
   background-color: #218838;
 }
-
 /* Modal */
 .modal {
   position: fixed;
@@ -254,89 +311,15 @@ button:hover {
   justify-content: center;
   align-items: center;
 }
-
 .modal-content {
   background: white;
   padding: 20px;
   border-radius: 5px;
   width: 300px;
 }
-
 .cancel-button {
   background-color: red;
 }
-
-.cancel-button:hover {
-  background-color: darkred;
-}
-
-/* Form Styles */
-input {
-  width: 100%;
-  padding: 5px;
-  margin-bottom: 10px;
-  border: 1px solid #ddd;
-  border-radius: 3px;
-}
-
-/* Modal */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.6); /* Halbtransparenter Hintergrund */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000; /* Sicherstellen, dass das Modal über anderen Inhalten liegt */
-}
-
-.modal-content {
-  background: #2d237c; /* Weißer Hintergrund */
-  padding: 20px;
-  border-radius: 10px; /* Abgerundete Ecken */
-  width: 400px; /* Breite des Modals */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Leichter Schatten für Tiefe */
-  text-align: left; /* Text linksbündig */
-}
-
-/* Form Styles */
-.modal-content label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: bold; /* Fettgedruckte Labels */
-}
-
-.modal-content input {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 15px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  box-sizing: border-box;
-}
-
-/* Buttons im Modal */
-.modal-content button {
-  margin: 5px;
-  padding: 10px 20px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 5px;
-}
-
-.modal-content button:hover {
-  background-color: #0056b3;
-}
-
-.cancel-button {
-  background-color: red;
-}
-
 .cancel-button:hover {
   background-color: darkred;
 }
