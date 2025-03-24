@@ -1,11 +1,10 @@
 <template>
   <div>
-    <h1>Übersicht Proxy Zertifikate</h1>
+    <h1>MySQL User und Zertifikate</h1>
 
     <!-- Filter -->
     <input v-model="searchSystem" placeholder="Filter by System" />
     <input v-model="searchStage" placeholder="Filter by Stage" />
-    <input v-model="searchZone" placeholder="Filter by Zone" />
 
     <!-- Sortier-Button -->
     <button @click="toggleSortOrder">
@@ -13,12 +12,13 @@
     </button>
 
     <!-- Add New Certificate Button -->
-    <button @click="openModal(null)" class="add-button">Add New Proxy Certificate</button>
+    <button @click="openModal(null)" class="add-button">Add New MySQL Certificate</button>
 
     <!-- New Certificate Modal -->
     <div v-if="showModal" class="modal">
       <div class="modal-content">
-        <h2>{{ editingCertificate ? 'Edit Proxy Certificate' : 'Add New Proxy Certificate' }}</h2>
+        <h2>{{ editingCertificate ? 'Edit MySQL Certificate' : 'Add New MySQL Certificate' }}</h2>
+
         <!-- Eingaben -->
         <label>System:</label>
         <input v-model="newCertificate.systemStage.system" type="text" />
@@ -26,20 +26,20 @@
         <label>Stage:</label>
         <input v-model="newCertificate.systemStage.stage" type="text" />
 
-        <label>Zone:</label>
-        <input v-model="newCertificate.zone" type="text" />
+        <label>Systemuser:</label>
+        <input v-model="newCertificate.systemuser" type="text" />
 
         <label>Server:</label>
         <input v-model="newCertificate.server" type="text" />
-
-        <label>Installationsverzeichnis:</label>
-        <input v-model="newCertificate.installationsverzeichnis" type="text" />
 
         <label>Zertifikatsname:</label>
         <input v-model="newCertificate.zertifikatsname" type="text" />
 
         <label>Gültigkeit:</label>
         <input v-model="newCertificate.gueltigkeit" type="date" />
+
+        <label>Zweck:</label>
+        <input v-model="newCertificate.zweck" type="text" />
 
         <button @click="saveCertificate">Save</button>
         <button @click="showModal = false" class="cancel-button">Cancel</button>
@@ -58,11 +58,11 @@
         <tr v-for="entry in sortedEntries" :key="entry.id">
           <td>{{ entry.system }}</td>
           <td>{{ entry.stage }}</td>
-          <td>{{ entry.zone }}</td>
+          <td>{{ entry.systemuser }}</td>
           <td>{{ entry.server }}</td>
-          <td>{{ entry.installationsverzeichnis }}</td>
           <td>{{ entry.zertifikatsname }}</td>
           <td>{{ entry.gueltigkeit }}</td>
+          <td>{{ entry.zweck }}</td>
           <td>
             <button @click="openModal(entry)">Bearbeiten</button>
             <button @click="deleteEntry(entry.id)" class="delete-button">Löschen</button>
@@ -76,51 +76,51 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 
-// Devstack-Einträge (alle bigtable-Einträge) werden geladen – wir filtern nach Typ "Proxy Zertifikate"
+// MySQL-Zertifikats-Daten aus der API (angenommen in der Tabelle bigtable mit Typ "MySQL User und Zertifikate")
 const entries = ref([])
-// Mapping-Daten aus systemstage
+// SystemStage-Mapping-Daten aus dem API
 const systemStages = ref([])
 
 // Filterfelder
 const searchSystem = ref('')
 const searchStage = ref('')
-const searchZone = ref('')
 const sortOrder = ref('asc')
 const showModal = ref(false)
 const editingCertificate = ref(null)
 
-// Standardwerte für ein neues Proxy-Zertifikat
+// Standardwerte für ein neues MySQL-Zertifikat
 const newCertificate = ref({
   systemStage: { system: '', stage: '' },
-  zone: '',
+  systemuser: '',
   server: '',
-  installationsverzeichnis: '',
   zertifikatsname: '',
   gueltigkeit: '',
-  // Typ wird fest auf "Proxy Zertifikate" gesetzt
-  typ: 'Proxy Zertifikate',
+  zweck: '',
+  // Der Typ wird fest auf "MySQL User und Zertifikate" gesetzt
+  typ: 'MySQL User und Zertifikate',
 })
 
 // Mapping für die Spaltenüberschriften
 const columnMapping = {
   system: 'System',
   stage: 'Stage',
-  zone: 'Zone',
+  systemuser: 'Systemuser',
   server: 'Server',
-  installationsverzeichnis: 'Installationsverzeichnis',
   zertifikatsname: 'Zertifikatsname',
   gueltigkeit: 'Gültigkeit',
+  zweck: 'Zweck',
 }
 
-// Beim Laden der Komponente: Hole Devstack-Daten und SystemStage-Mapping
+// Beim Laden der Komponente: Hole die MySQL-Zertifikate und das SystemStage-Mapping
 onMounted(async () => {
   try {
-    const resDevstack = await fetch('http://localhost:8080/api/bigtable')
-    const data = await resDevstack.json()
-    // Filtern: Wir nehmen nur Einträge mit Typ "Proxy Zertifikate"
-    entries.value = data.filter((item) => item.typ === 'Proxy Zertifikate')
+    const resMySQL = await fetch('http://localhost:8080/api/bigtable')
+    // Filtern: Wir nehmen nur die Einträge mit Typ "MySQL User und Zertifikate"
+    entries.value = (await resMySQL.json()).filter(
+      (item) => item.typ === 'MySQL User und Zertifikate',
+    )
   } catch (error) {
-    console.error('Error fetching proxy certificates:', error)
+    console.error('Error fetching MySQL certificates:', error)
   }
   try {
     const resSystemStage = await fetch('http://localhost:8080/api/systemstage')
@@ -135,18 +135,17 @@ const toggleSortOrder = () => {
   sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
 }
 
-// Berechnete Liste: Mapping von System, Stage anhand des verschachtelten Objekts oder über systemID
+// Berechnete Liste: Für jeden Eintrag prüfen wir, ob ein verschachteltes systemStage vorhanden ist.
+// Falls nicht, versuchen wir anhand von entry.systemID (als Zahl) im systemStages-Mapping den korrekten System- und Stage-Wert zu ermitteln.
 const sortedEntries = computed(() => {
   return entries.value
     .map((entry) => {
       let system = ''
       let stage = ''
-      // Verwende vorhandenes systemStage-Objekt, falls vorhanden
       if (entry.systemStage && entry.systemStage.system && entry.systemStage.stage) {
         system = entry.systemStage.system
         stage = entry.systemStage.stage
       } else if (entry.systemID) {
-        // Konvertiere systemID in Zahl, falls es als String vorliegt
         const idNum = Number(entry.systemID)
         const mapping = systemStages.value.find(
           (item) => Number(item.systemID) === idNum || Number(item.id) === idNum,
@@ -160,18 +159,17 @@ const sortedEntries = computed(() => {
         id: entry.id,
         system,
         stage,
-        zone: entry.zone || '',
+        systemuser: entry.systemuser || '',
         server: entry.server || '',
-        installationsverzeichnis: entry.installationsverzeichnis || '',
         zertifikatsname: entry.zertifikatsname || '',
         gueltigkeit: entry.gueltigkeit || '',
+        zweck: entry.zweck || '',
       }
     })
     .filter(
       (entry) =>
         entry.system.toLowerCase().includes(searchSystem.value.toLowerCase()) &&
-        entry.stage.toLowerCase().includes(searchStage.value.toLowerCase()) &&
-        entry.zone.toLowerCase().includes(searchZone.value.toLowerCase()),
+        entry.stage.toLowerCase().includes(searchStage.value.toLowerCase()),
     )
     .sort((a, b) => {
       const dateA = new Date(a.gueltigkeit).getTime()
@@ -186,25 +184,23 @@ const openModal = (entry) => {
     editingCertificate.value = entry
     newCertificate.value = {
       systemStage: { system: entry.system, stage: entry.stage },
-      zone: entry.zone,
-      systemuser: entry.systemuser, // könnte leer sein, da Proxy-Zertifikate eventuell keinen Systemuser benötigen, je nach Anforderung
+      systemuser: entry.systemuser,
       server: entry.server,
-      installationsverzeichnis: entry.installationsverzeichnis,
       zertifikatsname: entry.zertifikatsname,
       gueltigkeit: entry.gueltigkeit,
-      typ: 'Proxy Zertifikate',
+      zweck: entry.zweck,
+      typ: 'MySQL User und Zertifikate',
     }
   } else {
     editingCertificate.value = null
     newCertificate.value = {
       systemStage: { system: '', stage: '' },
-      zone: '',
       systemuser: '',
       server: '',
-      installationsverzeichnis: '',
       zertifikatsname: '',
       gueltigkeit: '',
-      typ: 'Proxy Zertifikate',
+      zweck: '',
+      typ: 'MySQL User und Zertifikate',
     }
   }
   showModal.value = true
@@ -228,7 +224,7 @@ const saveCertificate = async () => {
         entries.value[index] = updatedEntry
       }
     } catch (error) {
-      console.error('Error updating proxy certificate:', error)
+      console.error('Error updating MySQL certificate:', error)
     }
   } else {
     try {
@@ -242,7 +238,7 @@ const saveCertificate = async () => {
         entries.value.push(addedEntry)
       }
     } catch (error) {
-      console.error('Error adding proxy certificate:', error)
+      console.error('Error adding MySQL certificate:', error)
     }
   }
   showModal.value = false
@@ -258,62 +254,38 @@ const deleteEntry = async (id) => {
       entries.value = entries.value.filter((e) => e.id !== id)
     }
   } catch (error) {
-    console.error('Error deleting proxy certificate:', error)
+    console.error('Error deleting MySQL certificate:', error)
   }
 }
 </script>
 
 <style scoped>
-/* Tabellen-Stile */
+h1 {
+  color: #2c3e50;
+}
+input {
+  margin: 5px;
+}
+button {
+  margin: 5px;
+}
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 20px;
 }
 th,
 td {
+  border: 1px solid #ccc;
   padding: 10px;
-  border: 1px solid #ddd;
   text-align: left;
 }
-th {
-  background-color: #9f4141;
-}
-tr:nth-child(even) {
-  background-color: #112417;
-}
-tr:hover {
-  background-color: #21050549;
-}
-
-/* Buttons */
-button {
-  margin: 5px;
-  padding: 7px 12px;
-  background-color: #312525;
-  color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 4px;
-}
-button:hover {
-  background-color: #7e3232;
-}
-/* Add New Certificate Button */
-.add-button {
-  background-color: #28a745;
-}
-.add-button:hover {
-  background-color: #218838;
-}
-/* Modal */
 .modal {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -322,12 +294,20 @@ button:hover {
   background: white;
   padding: 20px;
   border-radius: 5px;
-  width: 300px;
+}
+.add-button,
+.cancel-button,
+.delete-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
 }
 .cancel-button {
-  background-color: red;
+  background-color: #dc3545;
 }
-.cancel-button:hover {
-  background-color: darkred;
+.delete-button {
+  background-color: #dc3545;
 }
 </style>

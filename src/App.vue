@@ -8,8 +8,13 @@ import { RouterLink, RouterView } from 'vue-router'
       <nav>
         <h2 class="nav-title">Navigation</h2>
         <RouterLink to="/">Systemuser Zertifikate</RouterLink>
-        <RouterLink to="/mq-certificates">MQ Zertifikate</RouterLink>
+        <RouterLink to="/devstack">Devstack Zertifikate</RouterLink>
         <RouterLink to="/proxy-certificates">Proxy Zertifikate</RouterLink>
+        <RouterLink to="/mqSystemuserUndZertifikate">MQ Systemuser</RouterLink>
+        <RouterLink to="/rvsZertifikate">RVS Zertifikate</RouterLink>
+        <RouterLink to="/MySQLUserUndZertifikate">MySQL User und Zertifikate</RouterLink>
+        <RouterLink to="/mySQlUsermitPasswortablauf">MySQL User mit Passwortablauf</RouterLink>
+        <RouterLink to="/OracleUserMitPasswortablauf">OracleUser Mit Passwortablauf</RouterLink>
       </nav>
     </div>
   </header>
