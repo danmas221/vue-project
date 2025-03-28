@@ -5,7 +5,7 @@ import ProxyZertifikate from '@/views/ProxyZertifikate.vue'
 import Devstack from '@/views/Devstack.vue'
 import MqSystemuserUndZertifikate from '@/views/mqSystemuserUndZertifikate.vue'
 import rvsZertifikate from '@/views/rvsZertifikate.vue'
-import MySQLUserUndZertifikate from '@/views/MySQLUserUndZertifikate.vue'
+import MySQLUserUndZertifikate from '@/views/mySqlUserUndZertifikate.vue'
 import mySQlUsermitPasswortablauf from '@/views/mySQlUsermitPasswortablauf.vue'
 import OracleUserMitPasswortablauf from '@/views/OracleUserMitPasswortablauf.vue'
 

@@ -2,17 +2,20 @@
   <div>
     <h1>Oracle User mit Passwortablauf</h1>
 
+    <button class="switchLanguage" @click="switchLanguage">🇩🇪 / 🇬🇧</button>
     <!-- Filter -->
-    <input v-model="searchSystem" placeholder="Filter by System" />
-    <input v-model="searchStage" placeholder="Filter by Stage" />
+    <input v-model="searchSystem" :placeholder="$t('filter_system')" />
+    <input v-model="searchStage" :placeholder="$t('filter_stage')" />
 
     <!-- Sortier-Button -->
     <button @click="toggleSortOrder">
-      Sortiere nach Gültigkeit ({{ sortOrder === 'asc' ? 'Aufsteigend' : 'Absteigend' }})
+      {{ $t('sort_validity', { order: sortOrder === 'asc' ? $t('ascending') : $t('descending') }) }}
     </button>
 
-    <!-- Add New User Button -->
-    <button @click="openModal(null)" class="add-button">Add New Oracle User</button>
+    <!-- Add New Certificate Button -->
+    <button @click="openModal(null)" class="add-button">
+      {{ $t('add_cert') }}
+    </button>
 
     <!-- New User Modal -->
     <div v-if="showModal" class="modal">
@@ -38,8 +41,8 @@
         <label>Zweck:</label>
         <input v-model="newUser.zweck" type="text" />
 
-        <button @click="saveUser">Save</button>
-        <button @click="showModal = false" class="cancel-button">Cancel</button>
+        <button @click="saveUser">{{ $t('save') }}</button>
+        <button @click="showModal = false" class="cancel-button">{{ $t('cancel') }}</button>
       </div>
     </div>
 
@@ -60,8 +63,8 @@
           <td>{{ entry.gueltigkeit }}</td>
           <td>{{ entry.zweck }}</td>
           <td>
-            <button @click="openModal(entry)">Bearbeiten</button>
-            <button @click="deleteEntry(entry.id)" class="delete-button">Löschen</button>
+            <button @click="openModal(entry)">{{ $t('edit') }}</button>
+            <button @click="deleteEntry(entry.id)" class="delete-button">{{ $t('delete') }}</button>
           </td>
         </tr>
       </tbody>
@@ -71,6 +74,13 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { locale } = useI18n()
+
+const switchLanguage = () => {
+  locale.value = locale.value === 'de' ? 'en' : 'de'
+}
 
 // Oracle User mit Passwortablauf-Daten aus der API (angenommen in der Tabelle bigtable mit Typ "Oracle User mit Passwortablauf")
 const entries = ref([])
@@ -246,56 +256,3 @@ const deleteEntry = async (id) => {
   }
 }
 </script>
-
-<style scoped>
-h1 {
-  color: #2c3e50;
-}
-input {
-  margin: 5px;
-}
-button {
-  margin: 5px;
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-th,
-td {
-  border: 1px solid #ccc;
-  padding: 10px;
-  text-align: left;
-}
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 5px;
-}
-.add-button,
-.cancel-button,
-.delete-button {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 10px;
-  cursor: pointer;
-}
-.cancel-button {
-  background-color: #dc3545;
-}
-.delete-button {
-  background-color: #dc3545;
-}
-</style>

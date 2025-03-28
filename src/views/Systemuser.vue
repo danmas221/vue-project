@@ -1,18 +1,25 @@
 <template>
   <div>
-    <h1>Systemuser und deren Zertifikate</h1>
+    <h1>{{ $t('title') }}</h1>
+
+    <button class="switchLanguage" @click="switchLanguage">
+      <!-- Zeigt 🇬🇧, wenn die aktuelle Sprache Deutsch ist, sonst 🇩🇪 -->
+      {{ locale === 'de' ? '🇬🇧' : '🇩🇪' }}
+    </button>
 
     <!-- Filter -->
-    <input v-model="searchSystem" placeholder="Filter by System" />
-    <input v-model="searchStage" placeholder="Filter by Stage" />
+    <input v-model="searchSystem" :placeholder="$t('filter_system')" />
+    <input v-model="searchStage" :placeholder="$t('filter_stage')" />
 
     <!-- Sortier-Button -->
     <button @click="toggleSortOrder">
-      Sortiere nach Gültigkeit ({{ sortOrder === 'asc' ? 'Aufsteigend' : 'Absteigend' }})
+      {{ $t('sort_validity', { order: sortOrder === 'asc' ? $t('ascending') : $t('descending') }) }}
     </button>
 
     <!-- Add New Certificate Button -->
-    <button @click="openModal(null)" class="add-button">Add New Certificate</button>
+    <button @click="openModal(null)" class="add-button">
+      {{ $t('add_cert') }}
+    </button>
 
     <!-- New Certificate Modal -->
     <div v-if="showModal" class="modal">
@@ -44,8 +51,8 @@
         <label>Typ:</label>
         <input v-model="newCertificate.typ" type="text" />
 
-        <button @click="saveCertificate">Save</button>
-        <button @click="showModal = false" class="cancel-button">Cancel</button>
+        <button @click="saveCertificate">{{ $t('save') }}</button>
+        <button @click="showModal = false" class="cancel-button">{{ $t('cancel') }}</button>
       </div>
     </div>
 
@@ -70,9 +77,9 @@
           <td>{{ certificate.zweck }}</td>
           <td>{{ certificate.typ }}</td>
           <td>
-            <button @click="openModal(certificate)">Bearbeiten</button>
-            <button @click="deleteCertificate(certificate.id)" class="delete-button">
-              Löschen
+            <button @click="openModal(certificate)" class="edit-button">{{ $t('edit') }}</button>
+            <button @click="deleteEntry(certificate.id)" class="delete-button">
+              {{ $t('delete') }}
             </button>
           </td>
         </tr>
@@ -83,6 +90,16 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+
+import { useI18n } from 'vue-i18n'
+
+const { locale } = useI18n()
+
+const switchLanguage = () => {
+  locale.value = locale.value === 'de' ? 'en' : 'de'
+}
+// Aktuelle Sprache als String (für den Button)
+const currentLanguage = computed(() => locale.value)
 
 // Original-Daten aus der API (BigTable-Datensätze)
 const certificates = ref([])
@@ -242,85 +259,16 @@ const saveCertificate = async () => {
 }
 
 // Löscht ein Zertifikat
-const deleteCertificate = async (id) => {
+const deleteEntry = async (id) => {
   try {
     const response = await fetch(`http://localhost:8080/api/bigtable/${id}`, {
       method: 'DELETE',
     })
     if (response.ok) {
-      certificates.value = certificates.value.filter((c) => c.id !== id)
+      certificates.value = certificates.value.filter((e) => e.id !== id)
     }
   } catch (error) {
-    console.error('Error deleting certificate:', error)
+    console.error('Error deleting Oracle user:', error)
   }
 }
 </script>
-
-<style scoped>
-/* Tabellen-Stile */
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-}
-th,
-td {
-  padding: 10px;
-  border: 1px solid #ddd;
-  text-align: left;
-}
-th {
-  background-color: #9f4141;
-}
-tr:nth-child(even) {
-  background-color: #112417;
-}
-tr:hover {
-  background-color: #21050549;
-}
-
-/* Buttons */
-button {
-  margin: 5px;
-  padding: 7px 12px;
-  background-color: #312525;
-  color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 4px;
-}
-button:hover {
-  background-color: #7e3232;
-}
-/* Add New Certificate Button */
-.add-button {
-  background-color: #28a745;
-}
-.add-button:hover {
-  background-color: #218838;
-}
-/* Modal */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 5px;
-  width: 300px;
-}
-.cancel-button {
-  background-color: red;
-}
-.cancel-button:hover {
-  background-color: darkred;
-}
-</style>
