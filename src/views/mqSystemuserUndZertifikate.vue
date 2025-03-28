@@ -2,17 +2,20 @@
   <div>
     <h1>MQ Systemuser und Zertifikate</h1>
 
+    <button class="switchLanguage" @click="switchLanguage">🇩🇪 / 🇬🇧</button>
     <!-- Filter -->
-    <input v-model="searchSystem" placeholder="Filter by System" />
-    <input v-model="searchStage" placeholder="Filter by Stage" />
+    <input v-model="searchSystem" :placeholder="$t('filter_system')" />
+    <input v-model="searchStage" :placeholder="$t('filter_stage')" />
 
     <!-- Sortier-Button -->
     <button @click="toggleSortOrder">
-      Sortiere nach Gültigkeit ({{ sortOrder === 'asc' ? 'Aufsteigend' : 'Absteigend' }})
+      {{ $t('sort_validity', { order: sortOrder === 'asc' ? $t('ascending') : $t('descending') }) }}
     </button>
 
     <!-- Add New Certificate Button -->
-    <button @click="openModal(null)" class="add-button">Add New MQ Certificate</button>
+    <button @click="openModal(null)" class="add-button">
+      {{ $t('add_cert') }}
+    </button>
 
     <!-- New Certificate Modal -->
     <div v-if="showModal" class="modal">
@@ -47,8 +50,8 @@
         <label>Gültigkeit:</label>
         <input v-model="newCertificate.gueltigkeit" type="date" />
 
-        <button @click="saveCertificate">Save</button>
-        <button @click="showModal = false" class="cancel-button">Cancel</button>
+        <button @click="saveCertificate">{{ $t('save') }}</button>
+        <button @click="showModal = false" class="cancel-button">{{ $t('cancel') }}</button>
       </div>
     </div>
 
@@ -72,8 +75,8 @@
           <td>{{ entry.issuer }}</td>
           <td>{{ entry.gueltigkeit }}</td>
           <td>
-            <button @click="openModal(entry)">Bearbeiten</button>
-            <button @click="deleteEntry(entry.id)" class="delete-button">Löschen</button>
+            <button @click="openModal(entry)">{{ $t('edit') }}</button>
+            <button @click="deleteEntry(entry.id)" class="delete-button">{{ $t('delete') }}</button>
           </td>
         </tr>
       </tbody>
@@ -83,6 +86,13 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { locale } = useI18n()
+
+const switchLanguage = () => {
+  locale.value = locale.value === 'de' ? 'en' : 'de'
+}
 
 // MQ-Zertifikats-Daten aus der API (angenommen in der Tabelle bigtable mit Typ "MQ Systemuser und Zertifikate")
 const entries = ref([])
@@ -276,72 +286,3 @@ const deleteEntry = async (id) => {
   }
 }
 </script>
-
-<style scoped>
-/* Tabellen-Stile */
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-}
-th,
-td {
-  padding: 10px;
-  border: 1px solid #ddd;
-  text-align: left;
-}
-th {
-  background-color: #9f4141;
-}
-tr:nth-child(even) {
-  background-color: #112417;
-}
-tr:hover {
-  background-color: #21050549;
-}
-
-/* Buttons */
-button {
-  margin: 5px;
-  padding: 7px 12px;
-  background-color: #312525;
-  color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 4px;
-}
-button:hover {
-  background-color: #7e3232;
-}
-/* Add New Certificate Button */
-.add-button {
-  background-color: #28a745;
-}
-.add-button:hover {
-  background-color: #218838;
-}
-/* Modal */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 5px;
-  width: 300px;
-}
-.cancel-button {
-  background-color: red;
-}
-.cancel-button:hover {
-  background-color: darkred;
-}
-</style>

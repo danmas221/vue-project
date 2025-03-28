@@ -1,0 +1,17 @@
+{
+  "title": "Systemuser und deren Zertifikate",
+  "filter_system": "Filter nach System",
+  "filter_stage": "Filter nach Stage",
+  "filter_zone": "Filter nach Zone",
+  "add_cert": "Neues Zertifikat hinzufügen",
+  "save": "Speichern",
+  "cancel": "Abbrechen",
+  "sort_token": "Nach Token-Gültigkeit sortieren ({order})",
+  "sort_validity": "Sortiere nach Gültigkeit ({order})",
+  "ascending": "Aufsteigend",
+  "descending": "Absteigend",
+  "edit": "Bearbeiten",
+  "delete": "Löschen",
+  "maximizeNav": "Maximiere Navigation",
+  "toggleNav": "Minimiere Navigation"
+}

@@ -4,21 +4,21 @@
   --vt-c-white-soft: #f8f8f8;
   --vt-c-white-mute: #f2f2f2;
 
-  --vt-c-black: #000000e8; /* Hintergrundfarbe auf Schwarz */
+  --vt-c-black: #ffffffe8; /* Hintergrundfarbe auf Schwarz */
   --vt-c-black-soft: #111111;
   --vt-c-black-mute: #181818;
 
-  --vt-c-indigo: #2c3e50;
+  --vt-c-indigo: #0b121a;
 
-  --vt-c-divider-light-1: rgba(60, 60, 60, 0.29);
-  --vt-c-divider-light-2: rgba(60, 60, 60, 0.12);
-  --vt-c-divider-dark-1: rgba(84, 84, 84, 0.65);
-  --vt-c-divider-dark-2: rgba(84, 84, 84, 0.48);
+  --vt-c-divider-light-1: rgba(0, 0, 0, 0.29);
+  --vt-c-divider-light-2: rgba(0, 0, 0, 0.12);
+  --vt-c-divider-dark-1: rgb(0, 0, 0);
+  --vt-c-divider-dark-2: rgb(0, 0, 0);
 
   --vt-c-text-light-1: var(--vt-c-indigo);
-  --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
+  --vt-c-text-light-2: rgb(0, 0, 0);
   --vt-c-text-dark-1: var(--vt-c-white);
-  --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
+  --vt-c-text-dark-2: rgb(0, 0, 0);
 }
 
 /* semantic color variables for this project */
@@ -65,7 +65,7 @@ body {
   transition:
     color 0.5s,
     background-color 0.5s;
-  line-height: 1.6;
+  line-height: 1.5;
   font-family:
     Inter,
     -apple-system,
@@ -79,8 +79,105 @@ body {
     'Droid Sans',
     'Helvetica Neue',
     sans-serif;
-  font-size: 15px;
+  font-size: 14px;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+th,
+td {
+  border: 1px solid #ccc;
+  padding: 10px;
+  text-align: left;
+}
+th {
+  background-color: #0d4671;
+  color: white;
+}
+
+/* Gemeinsamer Stil für Buttons */
+button {
+  margin: 5px;
+  padding: 5px 7px;
+  background-color: #312525;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+button:hover {
+  background-color: #25374b;
+}
+.add-button {
+  background-color: #312525;
+}
+.add-button:hover {
+  background-color: #3125255c;
+}
+/* Gemeinsamer Stil für Modals */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* Stellen Sie sicher, dass das Modal über dem restlichen Inhalt liegt */
+}
+
+.modal-content {
+  font-size: large;
+  background: rgba(234, 234, 234, 0.881);
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 600px;
+  min-width: 400px;
+  max-height: 80%;
+  overflow-y: auto; /* Falls der Inhalt zu hoch ist, wird ein Scrollbalken angezeigt */
+  display: flex;
+  flex-direction: column; /* Flexbox-Layout für vertikale Ausrichtung */
+  justify-content: space-between; /* Raum zwischen Inhalt und Buttons */
+}
+
+.modal-content label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 8px; /* Abstand unter dem Label */
+}
+.modal-content input {
+  width: 100%; /* Volle Breite des Modals */
+  padding: 10px;
+  margin-bottom: 16px; /* Abstand zwischen den Feldern */
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+.cancel-button {
+  background-color: red;
+}
+.cancel-button:hover {
+  background-color: darkred;
+}
+/* Gemeinsamer Stil für Überschriften */
+h1 {
+  color: #000000;
+}
+.switchLanguage {
+  position: fixed;
+  background-color: rgb(0, 0, 0);
+  top: 0;
+  right: 0;
 }

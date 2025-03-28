@@ -1,21 +1,12 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
+import NavToggle from './views/NavToggle.vue'
 </script>
 
 <template>
   <header>
     <div class="wrapper">
-      <nav>
-        <h2 class="nav-title">Navigation</h2>
-        <RouterLink to="/">Systemuser Zertifikate</RouterLink>
-        <RouterLink to="/devstack">Devstack Zertifikate</RouterLink>
-        <RouterLink to="/proxy-certificates">Proxy Zertifikate</RouterLink>
-        <RouterLink to="/mqSystemuserUndZertifikate">MQ Systemuser</RouterLink>
-        <RouterLink to="/rvsZertifikate">RVS Zertifikate</RouterLink>
-        <RouterLink to="/MySQLUserUndZertifikate">MySQL User und Zertifikate</RouterLink>
-        <RouterLink to="/mySQlUsermitPasswortablauf">MySQL User mit Passwortablauf</RouterLink>
-        <RouterLink to="/OracleUserMitPasswortablauf">OracleUser Mit Passwortablauf</RouterLink>
-      </nav>
+      <NavToggle />
     </div>
   </header>
 
@@ -24,9 +15,9 @@ import { RouterLink, RouterView } from 'vue-router'
 
 <style scoped>
 body {
-  background-color: #ffffff; /* Weißer Hintergrund */
+  background-color: var(--color-background); /* Dynamischer Hintergrund */
   font-family: 'Roboto', sans-serif;
-  color: #000000;
+  color: var(--color-text); /* Dynamische Textfarbe */
 }
 
 header {
@@ -34,22 +25,16 @@ header {
   max-height: 100vh;
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
 nav {
-  border: 2px solid var(--color-border);
+  border: 1px solid var(--color-border);
   padding: 1.5rem;
   border-radius: 8px;
-  width: 100%;
-  font-size: 12px;
+  width: 100px;
+  font-size: 14px;
   text-align: center;
-  margin-top: 2rem;
+  margin-top: 1rem;
   display: flex;
   flex-direction: column;
-  font-size: 12px;
 }
 .nav-title {
   font-size: 1.2rem;
@@ -68,7 +53,7 @@ nav a.router-link-exact-active:hover {
 nav a {
   display: inline-block;
   padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
+  margin-bottom: 10px;
 }
 
 nav a:first-of-type {
@@ -79,11 +64,7 @@ nav a:first-of-type {
   header {
     display: flex;
     place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
+    padding-right: calc(var(--section-gap) / 5);
   }
 
   header .wrapper {
