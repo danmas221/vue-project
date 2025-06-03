@@ -85,6 +85,13 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -146,7 +153,7 @@ button:hover {
   width: 100%;
   max-width: 600px;
   min-width: 400px;
-  max-height: 80%;
+  max-height: 90%;
   overflow-y: auto; /* Falls der Inhalt zu hoch ist, wird ein Scrollbalken angezeigt */
   display: flex;
   flex-direction: column; /* Flexbox-Layout für vertikale Ausrichtung */
@@ -156,12 +163,13 @@ button:hover {
 .modal-content label {
   display: block;
   font-weight: 500;
-  margin-bottom: 8px; /* Abstand unter dem Label */
+  margin-bottom: 6px; /* Abstand unter dem Label */
 }
 .modal-content input {
+  font-size: 15px;
   width: 100%; /* Volle Breite des Modals */
   padding: 10px;
-  margin-bottom: 16px; /* Abstand zwischen den Feldern */
+  margin-bottom: 6px; /* Abstand zwischen den Feldern */
   border-radius: 4px;
   border: 1px solid #ccc;
 }
@@ -170,6 +178,10 @@ button:hover {
 }
 .cancel-button:hover {
   background-color: darkred;
+}
+
+input {
+  margin-right: 5px;
 }
 /* Gemeinsamer Stil für Überschriften */
 h1 {

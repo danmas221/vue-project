@@ -1,61 +1,72 @@
 <template>
   <div>
-    <h1>RVS Zertifikate</h1>
+    <h1>{{ $t('rvs_certificates') }}</h1>
 
-    <button class="switchLanguage" @click="switchLanguage">🇩🇪 / 🇬🇧</button>
-    <!-- Filter -->
+    <button class="switchLanguage" @click="switchLanguage">
+      <!-- Zeigt 🇬🇧, wenn Deutsch aktiv ist, sonst 🇩🇪 -->
+      {{ locale === 'de' ? '🇬🇧' : '🇩🇪' }}
+    </button>
+
+    <!-- Filterfelder -->
     <input v-model="searchSystem" :placeholder="$t('filter_system')" />
     <input v-model="searchStage" :placeholder="$t('filter_stage')" />
 
-    <!-- Sortier-Button -->
+    <!-- Sortier-Button (Sortierung nach Gültigkeit) -->
     <button @click="toggleSortOrder">
       {{ $t('sort_validity', { order: sortOrder === 'asc' ? $t('ascending') : $t('descending') }) }}
     </button>
 
+    <!-- Add New Certificate Button -->
     <button @click="openModal(null)" class="add-button">
       {{ $t('add_cert') }}
     </button>
-    <!-- New Certificate Modal -->
+
+    <!-- Modal zum Hinzufügen/Bearbeiten -->
     <div v-if="showModal" class="modal">
       <div class="modal-content">
-        <h2>{{ editingCertificate ? 'Edit RVS Certificate' : 'Add New RVS Certificate' }}</h2>
+        <h2>
+          {{ editingCertificate ? $t('edit') : $t('add_cert') }}
+        </h2>
 
-        <!-- Eingaben -->
-        <label>System:</label>
+        <!-- Formularfelder -->
+        <label>{{ $t('system_column') }}:</label>
         <input v-model="newCertificate.systemStage.system" type="text" />
 
-        <label>Stage:</label>
+        <label>{{ $t('stage_column') }}:</label>
         <input v-model="newCertificate.systemStage.stage" type="text" />
 
         <label>RVS Station:</label>
         <input v-model="newCertificate.rvsStation" type="text" />
 
-        <label>Server:</label>
+        <label>{{ $t('server_column') }}:</label>
         <input v-model="newCertificate.server" type="text" />
 
-        <label>Zertifikatsname:</label>
+        <label>{{ $t('certificate_name_column') }}:</label>
         <input v-model="newCertificate.zertifikatsname" type="text" />
 
-        <label>Odette ID:</label>
+        <label>{{ $t('odette-id_column') }}:</label>
         <input v-model="newCertificate.odetteId" type="text" />
 
-        <label>Gültigkeit:</label>
+        <label>{{ $t('validity_column') }}:</label>
         <input v-model="newCertificate.gueltigkeit" type="date" />
 
-        <label>Zweck:</label>
+        <label>{{ $t('purpose_column') }}:</label>
         <input v-model="newCertificate.zweck" type="text" />
+        <!-- Der Typ ist fest (nicht editierbar) -->
+        <label>{{ $t('type_column') }}:</label>
+        <input v-model="newCertificate.typ" type="text" disabled />
 
         <button @click="saveCertificate">{{ $t('save') }}</button>
         <button @click="showModal = false" class="cancel-button">{{ $t('cancel') }}</button>
       </div>
     </div>
 
-    <!-- Dynamische Tabelle -->
+    <!-- Tabelle -->
     <table>
       <thead>
         <tr>
           <th v-for="(label, key) in columnMapping" :key="key">{{ label }}</th>
-          <th>Aktionen</th>
+          <th>{{ $t('action_column') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -68,6 +79,7 @@
           <td>{{ entry.odetteId }}</td>
           <td>{{ entry.gueltigkeit }}</td>
           <td>{{ entry.zweck }}</td>
+          <td>{{ entry.typ }}</td>
           <td>
             <button @click="openModal(entry)">{{ $t('edit') }}</button>
             <button @click="deleteEntry(entry.id)" class="delete-button">{{ $t('delete') }}</button>
@@ -82,20 +94,23 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-const { locale } = useI18n()
-// RVS-Zertifikats-Daten aus der API (angenommen in der Tabelle bigtable mit Typ "RVS Zertifikate")
-const entries = ref([])
-// SystemStage-Mapping-Daten aus dem API
-const systemStages = ref([])
+const { t, locale } = useI18n()
+
 const switchLanguage = () => {
   locale.value = locale.value === 'de' ? 'en' : 'de'
 }
-// Filterfelder
+
+// Filterfelder und Statusvariablen
 const searchSystem = ref('')
 const searchStage = ref('')
 const sortOrder = ref('asc')
 const showModal = ref(false)
 const editingCertificate = ref(null)
+
+// Array für RVS-Zertifikate (aus der BigTable)
+const entries = ref([])
+// Array für das SystemStage-Mapping
+const systemStages = ref([])
 
 // Standardwerte für ein neues RVS-Zertifikat
 const newCertificate = ref({
@@ -106,28 +121,29 @@ const newCertificate = ref({
   odetteId: '',
   gueltigkeit: '',
   zweck: '',
-  // Der Typ wird fest auf "RVS Zertifikate" gesetzt
   typ: 'RVS Zertifikate',
 })
 
-// Mapping für die Spaltenüberschriften
-const columnMapping = {
-  system: 'System',
-  stage: 'Stage',
-  rvsStation: 'RVS Station',
-  server: 'Server',
-  zertifikatsname: 'Zertifikatsname',
-  odetteId: 'Odette ID',
-  gueltigkeit: 'Gültigkeit',
-  zweck: 'Zweck',
-}
+// Dynamisch übersetztes Mapping für die Spaltenüberschriften
+const columnMapping = computed(() => ({
+  system: t('system_column'),
+  stage: t('stage_column'),
+  rvsStation: t('rvs-station_column'),
+  server: t('server_column'),
+  zertifikatsname: t('certificate_name_column'),
+  odetteId: t('odette-id_column'),
+  gueltigkeit: t('validity_column'),
+  zweck: t('purpose_column'),
+  typ: t('type_column'),
+}))
 
-// Beim Laden der Komponente: Hole die RVS-Zertifikate und das SystemStage-Mapping
+// Beim Laden der Komponente: Hole RVS-Zertifikate und SystemStage-Mapping
 onMounted(async () => {
   try {
     const resRVS = await fetch('http://localhost:8080/api/bigtable')
-    // Filtern: Wir nehmen nur die Einträge mit Typ "RVS Zertifikate"
-    entries.value = (await resRVS.json()).filter((item) => item.typ === 'RVS Zertifikate')
+    const data = await resRVS.json()
+    // Filtere nur Einträge mit Typ "RVS Zertifikate"
+    entries.value = data.filter((item) => item.typ === 'RVS Zertifikate')
   } catch (error) {
     console.error('Error fetching RVS certificates:', error)
   }
@@ -139,13 +155,13 @@ onMounted(async () => {
   }
 })
 
-// Umschalten der Sortierreihenfolge (Sortierung nach Gültigkeit)
+// Umschalten der Sortierreihenfolge (nach Gültigkeit)
 const toggleSortOrder = () => {
   sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
 }
 
-// Berechnete Liste: Für jeden Eintrag prüfen wir, ob ein verschachteltes systemStage vorhanden ist.
-// Falls nicht, versuchen wir anhand von entry.systemID (als Zahl) im systemStages-Mapping den korrekten System- und Stage-Wert zu ermitteln.
+// Berechnete Liste: Für jeden Eintrag wird geprüft, ob ein systemStage-Objekt vorhanden ist.
+// Falls nicht, wird anhand von entry.systemID im Mapping der korrekte System- und Stage-Wert ermittelt.
 const sortedEntries = computed(() => {
   return entries.value
     .map((entry) => {
@@ -174,6 +190,7 @@ const sortedEntries = computed(() => {
         odetteId: entry.odetteId || '',
         gueltigkeit: entry.gueltigkeit || '',
         zweck: entry.zweck || '',
+        typ: entry.typ || 'RVS Zertifikate',
       }
     })
     .filter(
@@ -188,7 +205,7 @@ const sortedEntries = computed(() => {
     })
 })
 
-// Öffnet das Modal zum Bearbeiten oder Erstellen eines Zertifikats.
+// Öffnet das Modal zum Bearbeiten oder Erstellen eines Zertifikats
 const openModal = (entry) => {
   if (entry) {
     editingCertificate.value = entry
@@ -217,7 +234,8 @@ const openModal = (entry) => {
   }
   showModal.value = true
 }
-// Speichert (hinzufügen oder updaten) ein Zertifikat.
+
+// Speichert (hinzufügen oder updaten) ein Zertifikat
 const saveCertificate = async () => {
   if (editingCertificate.value) {
     try {
@@ -255,17 +273,19 @@ const saveCertificate = async () => {
   showModal.value = false
 }
 
-// Löscht ein Zertifikat.
+// Löscht ein Zertifikat mit Löschbestätigung
 const deleteEntry = async (id) => {
-  try {
-    const response = await fetch(`http://localhost:8080/api/bigtable/${id}`, {
-      method: 'DELETE',
-    })
-    if (response.ok) {
-      entries.value = entries.value.filter((e) => e.id !== id)
+  if (confirm(t('confirm_delete'))) {
+    try {
+      const response = await fetch(`http://localhost:8080/api/bigtable/${id}`, {
+        method: 'DELETE',
+      })
+      if (response.ok) {
+        entries.value = entries.value.filter((e) => e.id !== id)
+      }
+    } catch (error) {
+      console.error('Error deleting RVS certificate:', error)
     }
-  } catch (error) {
-    console.error('Error deleting RVS certificate:', error)
   }
 }
 </script>

@@ -2,15 +2,21 @@
   <div>
     <button @click="toggleNav">{{ isNavOpen ? $t('toggleNav') : $t('maximizeNav') }}</button>
     <nav v-if="isNavOpen">
-      <h2 class="nav-title">Navigation</h2>
-      <RouterLink to="/">Systemuser Zertifikate</RouterLink>
-      <RouterLink to="/devstack">Devstack Zertifikate</RouterLink>
-      <RouterLink to="/proxy-certificates">Proxy Zertifikate</RouterLink>
-      <RouterLink to="/mqSystemuserUndZertifikate">MQ Systemuser</RouterLink>
-      <RouterLink to="/rvsZertifikate">RVS Zertifikate</RouterLink>
-      <RouterLink to="/MySQLUserUndZertifikate">MySQL User und Zertifikate</RouterLink>
-      <RouterLink to="/mySQlUsermitPasswortablauf">MySQL User mit Passwortablauf</RouterLink>
-      <RouterLink to="/OracleUserMitPasswortablauf">OracleUser Mit Passwortablauf</RouterLink>
+      <h2 class="nav-title">{{ $t('navigation') }}</h2>
+      <RouterLink to="/">{{ $t('systemuser_certificates') }}</RouterLink>
+      <RouterLink to="/devstack">{{ $t('devstack_certificates') }}</RouterLink>
+      <RouterLink to="/proxy-certificates">{{ $t('proxy_certificates') }}</RouterLink>
+      <RouterLink to="/mqSystemuserUndZertifikate">{{
+        $t('mq_systemuser_certificates')
+      }}</RouterLink>
+      <RouterLink to="/rvsZertifikate">{{ $t('rvs_certificates') }}</RouterLink>
+      <RouterLink to="/MySQLUserUndZertifikate">{{ $t('mysql_user_certificates') }}</RouterLink>
+      <RouterLink to="/mySQlUsermitPasswortablauf">{{
+        $t('mysql_user_password_expiration')
+      }}</RouterLink>
+      <RouterLink to="/OracleUserMitPasswortablauf">{{
+        $t('oracle_user_password_expiration')
+      }}</RouterLink>
     </nav>
   </div>
 </template>
@@ -39,6 +45,9 @@ body {
 }
 
 button {
+  position: absolute;
+  left: 55px;
+  top: 250px;
   background-color: #0d4671;
   color: white;
   border: none;

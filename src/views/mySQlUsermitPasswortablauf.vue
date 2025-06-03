@@ -1,45 +1,52 @@
 <template>
   <div>
-    <h1>MySQL User mit Passwortablauf</h1>
+    <h1>{{ $t('mysql_user_password_expiration') }}</h1>
 
-    <button class="switchLanguage" @click="switchLanguage">🇩🇪 / 🇬🇧</button>
-    <!-- Filter -->
+    <button class="switchLanguage" @click="switchLanguage">
+      {{ locale === 'de' ? '🇬🇧' : '🇩🇪' }}
+    </button>
+
+    <!-- Filterfelder -->
     <input v-model="searchSystem" :placeholder="$t('filter_system')" />
     <input v-model="searchStage" :placeholder="$t('filter_stage')" />
 
-    <!-- Sortier-Button -->
+    <!-- Sortier-Button (Sortierung nach Gültigkeit) -->
     <button @click="toggleSortOrder">
       {{ $t('sort_validity', { order: sortOrder === 'asc' ? $t('ascending') : $t('descending') }) }}
     </button>
 
-    <!-- Add New Certificate Button -->
+    <!-- Button zum Hinzufügen eines neuen MySQL Users -->
     <button @click="openModal(null)" class="add-button">
       {{ $t('add_cert') }}
     </button>
 
-    <!-- New User Modal -->
+    <!-- Modal zum Erstellen/Bearbeiten -->
     <div v-if="showModal" class="modal">
       <div class="modal-content">
-        <h2>{{ editingUser ? 'Edit MySQL User' : 'Add New MySQL User' }}</h2>
-
-        <!-- Eingaben -->
-        <label>System:</label>
+        <h2>
+          {{ editingUser ? $t('edit') : $t('add_cert') }}
+        </h2>
+        <!-- Formularfelder -->
+        <label>{{ $t('system_column') }}:</label>
         <input v-model="newUser.systemStage.system" type="text" />
 
-        <label>Stage:</label>
+        <label>{{ $t('stage_column') }}:</label>
         <input v-model="newUser.systemStage.stage" type="text" />
 
-        <label>MySQL User:</label>
+        <label>{{ $t('mysql-user_column') }}:</label>
         <input v-model="newUser.mysqlUser" type="text" />
 
-        <label>Server:</label>
+        <label>{{ $t('server_column') }}:</label>
         <input v-model="newUser.server" type="text" />
 
-        <label>Gültigkeit:</label>
+        <label>{{ $t('validity_column') }}:</label>
         <input v-model="newUser.gueltigkeit" type="date" />
 
-        <label>Zweck:</label>
+        <label>{{ $t('purpose_column') }}:</label>
         <input v-model="newUser.zweck" type="text" />
+
+        <label>{{ $t('type_column') }}:</label>
+        <input v-model="newUser.typ" type="text" disabled />
 
         <button @click="saveUser">{{ $t('save') }}</button>
         <button @click="showModal = false" class="cancel-button">{{ $t('cancel') }}</button>
@@ -50,8 +57,16 @@
     <table>
       <thead>
         <tr>
-          <th v-for="(label, key) in columnMapping" :key="key">{{ label }}</th>
-          <th>Aktionen</th>
+          <th>{{ $t('system_column') }}</th>
+          <th>{{ $t('stage_column') }}</th>
+          <th>{{ $t('mysql-user_column') }}</th>
+          <th>{{ $t('server_column') }}</th>
+          <th>{{ $t('validity_column') }}</th>
+          <th>{{ $t('purpose_column') }}</th>
+          <th>{{ $t('type_column') }}</th>
+          <!-- Neue Spalte "Typ" -->
+          <th>{{ $t('action_column') }}</th>
+          <!-- Neue Spalte "Aktionen" -->
         </tr>
       </thead>
       <tbody>
@@ -62,9 +77,13 @@
           <td>{{ entry.server }}</td>
           <td>{{ entry.gueltigkeit }}</td>
           <td>{{ entry.zweck }}</td>
+          <td>{{ entry.typ }}</td>
+          <!-- Anzeige des Typs -->
           <td>
             <button @click="openModal(entry)">{{ $t('edit') }}</button>
-            <button @click="deleteEntry(entry.id)" class="delete-button">{{ $t('delete') }}</button>
+            <button @click="deleteEntry(entry.id)" class="delete-button">
+              {{ $t('delete') }}
+            </button>
           </td>
         </tr>
       </tbody>
@@ -76,18 +95,19 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 
+// Sprache umschalten
 const switchLanguage = () => {
   locale.value = locale.value === 'de' ? 'en' : 'de'
 }
 
-// MySQL User mit Passwortablauf-Daten aus der API (angenommen in der Tabelle bigtable mit Typ "MySQL User mit Passwortablauf")
+// MySQL User mit Passwortablauf-Daten (aus API: bigtable)
 const entries = ref([])
-// SystemStage-Mapping-Daten aus dem API
+// Mapping-Daten aus systemstage (falls nicht direkt im Eintrag enthalten)
 const systemStages = ref([])
 
-// Filterfelder
+// Filterfelder und Statusvariablen
 const searchSystem = ref('')
 const searchStage = ref('')
 const sortOrder = ref('asc')
@@ -101,28 +121,28 @@ const newUser = ref({
   server: '',
   gueltigkeit: '',
   zweck: '',
-  // Der Typ wird fest auf "MySQL User mit Passwortablauf" gesetzt
+  // Typ festgelegt auf "MySQL User mit Passwortablauf"
   typ: 'MySQL User mit Passwortablauf',
 })
 
-// Mapping für die Spaltenüberschriften
-const columnMapping = {
-  system: 'System',
-  stage: 'Stage',
-  mysqlUser: 'MySQL User',
-  server: 'Server',
-  gueltigkeit: 'Gültigkeit',
-  zweck: 'Zweck',
-}
+// Dynamisch übersetztes Mapping für die Spaltenüberschriften
+const columnMapping = computed(() => ({
+  system: t('system_column'),
+  stage: t('stage_column'),
+  mysqlUser: t('mysql-user_column'),
+  server: t('server_column'),
+  gueltigkeit: t('validity_column'),
+  zweck: t('purpose_column'),
+  typ: t('type_column'),
+}))
 
-// Beim Laden der Komponente: Hole die MySQL User und das SystemStage-Mapping
+// Beim Laden der Komponente: Hole MySQL User und SystemStage-Mapping
 onMounted(async () => {
   try {
     const resMySQL = await fetch('http://localhost:8080/api/bigtable')
-    // Filtern: Wir nehmen nur die Einträge mit Typ "MySQL User mit Passwortablauf"
-    entries.value = (await resMySQL.json()).filter(
-      (item) => item.typ === 'MySQL User mit Passwortablauf',
-    )
+    const data = await resMySQL.json()
+    // Filtere nach Typ "MySQL User mit Passwortablauf"
+    entries.value = data.filter((item) => item.typ === 'MySQL User mit Passwortablauf')
   } catch (error) {
     console.error('Error fetching MySQL users:', error)
   }
@@ -134,13 +154,13 @@ onMounted(async () => {
   }
 })
 
-// Umschalten der Sortierreihenfolge (Sortierung nach Gültigkeit)
+// Umschalten der Sortierreihenfolge (nach Gültigkeit)
 const toggleSortOrder = () => {
   sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
 }
 
-// Berechnete Liste: Für jeden Eintrag prüfen wir, ob ein verschachteltes systemStage vorhanden ist.
-// Falls nicht, versuchen wir anhand von entry.systemID (als Zahl) im systemStages-Mapping den korrekten System- und Stage-Wert zu ermitteln.
+// Berechnete Liste: Für jeden Eintrag prüfen, ob ein systemStage-Objekt vorhanden ist.
+// Falls nicht, wird anhand von entry.systemID der korrekte System- und Stage-Wert ermittelt.
 const sortedEntries = computed(() => {
   return entries.value
     .map((entry) => {
@@ -167,6 +187,7 @@ const sortedEntries = computed(() => {
         server: entry.server || '',
         gueltigkeit: entry.gueltigkeit || '',
         zweck: entry.zweck || '',
+        typ: entry.typ || 'MySQL User mit Passwortablauf',
       }
     })
     .filter(
@@ -181,7 +202,7 @@ const sortedEntries = computed(() => {
     })
 })
 
-// Öffnet das Modal zum Bearbeiten oder Erstellen eines MySQL Users.
+// Öffnet das Modal zum Erstellen/Bearbeiten eines MySQL Users
 const openModal = (entry) => {
   if (entry) {
     editingUser.value = entry
@@ -207,7 +228,7 @@ const openModal = (entry) => {
   showModal.value = true
 }
 
-// Speichert (hinzufügen oder updaten) einen MySQL User.
+// Speichert (hinzufügen oder updaten) einen MySQL User
 const saveUser = async () => {
   if (editingUser.value) {
     try {
@@ -242,17 +263,19 @@ const saveUser = async () => {
   showModal.value = false
 }
 
-// Löscht einen MySQL User.
+// Löscht einen MySQL User mit Löschbestätigung
 const deleteEntry = async (id) => {
-  try {
-    const response = await fetch(`http://localhost:8080/api/bigtable/${id}`, {
-      method: 'DELETE',
-    })
-    if (response.ok) {
-      entries.value = entries.value.filter((e) => e.id !== id)
+  if (confirm(t('confirm_delete'))) {
+    try {
+      const response = await fetch(`http://localhost:8080/api/bigtable/${id}`, {
+        method: 'DELETE',
+      })
+      if (response.ok) {
+        entries.value = entries.value.filter((e) => e.id !== id)
+      }
+    } catch (error) {
+      console.error('Error deleting MySQL user:', error)
     }
-  } catch (error) {
-    console.error('Error deleting MySQL user:', error)
   }
 }
 </script>

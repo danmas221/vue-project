@@ -1,8 +1,9 @@
 <template>
   <div>
-    <h1>Übersicht Devstack</h1>
+    <h1>{{ $t('devstack_title') }}</h1>
 
     <button class="switchLanguage" @click="switchLanguage">🇩🇪 / 🇬🇧</button>
+
     <!-- Filter -->
     <input v-model="searchSystem" :placeholder="$t('filter_system')" />
     <input v-model="searchStage" :placeholder="$t('filter_stage')" />
@@ -25,34 +26,34 @@
         </h2>
 
         <!-- Eingaben -->
-        <label>System:</label>
+        <label>{{ $t('system_column') }}:</label>
         <input v-model="newCertificate.systemStage.system" type="text" />
 
-        <label>Stage:</label>
+        <label>{{ $t('stage_column') }}:</label>
         <input v-model="newCertificate.systemStage.stage" type="text" />
 
-        <label>Systemuser:</label>
+        <label>{{ $t('system_user_column') }}:</label>
         <input v-model="newCertificate.systemuser" type="text" />
 
-        <label>Server:</label>
+        <label>{{ $t('server_column') }}:</label>
         <input v-model="newCertificate.server" type="text" />
 
-        <label>Zertifikatsname:</label>
+        <label>{{ $t('certificate_name_column') }}:</label>
         <input v-model="newCertificate.zertifikatsname" type="text" />
 
-        <label>Token Gültigkeit:</label>
+        <label>{{ $t('token_validity_column') }}:</label>
         <input v-model="newCertificate.token_gueltigkeit" type="date" />
 
-        <label>Cert Gültigkeit:</label>
+        <label>{{ $t('cert_validity_column') }}:</label>
         <input v-model="newCertificate.cert_gueltigkeit" type="date" />
 
-        <label>TAMU Gültigkeit:</label>
+        <label>{{ $t('tamu_validity_column') }}:</label>
         <input v-model="newCertificate.tamu_gueltigkeit" type="date" />
 
-        <label>ADCS Gültigkeit:</label>
+        <label>{{ $t('adcs_validity_column') }}:</label>
         <input v-model="newCertificate.adcs_gueltigkeit" type="date" />
 
-        <label>Zweck:</label>
+        <label>{{ $t('purpose_column') }}:</label>
         <input v-model="newCertificate.zweck" type="text" />
 
         <button @click="saveCertificate">{{ $t('save') }}</button>
@@ -94,7 +95,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 
 const switchLanguage = () => {
   locale.value = locale.value === 'de' ? 'en' : 'de'
@@ -125,19 +126,19 @@ const newCertificate = ref({
   zweck: '',
 })
 
-// Mapping für die Spaltenüberschriften
-const columnMapping = {
-  system: 'System',
-  stage: 'Stage',
-  systemuser: 'Systemuser',
-  server: 'Server',
-  zertifikatsname: 'Zertifikatsname',
-  token_gueltigkeit: 'Token Gültigkeit',
-  cert_gueltigkeit: 'Cert Gültigkeit',
-  tamu_gueltigkeit: 'TAMU Gültigkeit',
-  adcs_gueltigkeit: 'ADCS Gültigkeit',
-  zweck: 'Zweck',
-}
+// Mapping für die Spaltenüberschriften mit dynamischer Übersetzung
+const columnMapping = computed(() => ({
+  system: t('system_column'),
+  stage: t('stage_column'),
+  systemuser: t('system_user_column'),
+  server: t('server_column'),
+  zertifikatsname: t('certificate_name_column'),
+  token_gueltigkeit: t('token_validity_column'),
+  cert_gueltigkeit: t('cert_validity_column'),
+  tamu_gueltigkeit: t('tamu_validity_column'),
+  adcs_gueltigkeit: t('adcs_validity_column'),
+  zweck: t('purpose_column'),
+}))
 
 // Beim Laden der Komponente: Hole Devstack-Daten und SystemStage-Mapping
 onMounted(async () => {
@@ -281,15 +282,18 @@ const saveCertificate = async () => {
 
 // Löscht ein Zertifikat.
 const deleteEntry = async (id) => {
-  try {
-    const response = await fetch(`http://localhost:8080/api/devstack/${id}`, {
-      method: 'DELETE',
-    })
-    if (response.ok) {
-      entries.value = entries.value.filter((e) => e.id !== id)
+  if (confirm(t('confirm_delete'))) {
+    // Bestätigungsdialog
+    try {
+      const response = await fetch(`http://localhost:8080/api/devstack/${id}`, {
+        method: 'DELETE',
+      })
+      if (response.ok) {
+        entries.value = entries.value.filter((e) => e.id !== id) // Entfernen des Eintrags
+      }
+    } catch (error) {
+      console.error('Error deleting devstack entry:', error) // Fehlerbehandlung
     }
-  } catch (error) {
-    console.error('Error deleting devstack entry:', error)
   }
 }
 </script>

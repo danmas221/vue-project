@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h1>{{ $t('title') }}</h1>
+    <h1>{{ $t('sys_user_title') }}</h1>
 
     <button class="switchLanguage" @click="switchLanguage">
       <!-- Zeigt 🇬🇧, wenn die aktuelle Sprache Deutsch ist, sonst 🇩🇪 -->
@@ -27,28 +27,28 @@
         <h2>{{ editingCertificate ? 'Edit Certificate' : 'Add New Certificate' }}</h2>
 
         <!-- Hier werden System und Stage in einem verschachtelten Objekt abgelegt -->
-        <label>System:</label>
+        <label>{{ $t('system_column') }}:</label>
         <input v-model="newCertificate.systemStage.system" type="text" />
 
-        <label>Stage:</label>
+        <label>{{ $t('stage_column') }}:</label>
         <input v-model="newCertificate.systemStage.stage" type="text" />
 
-        <label>Systemuser:</label>
+        <label>{{ $t('system_user_column') }}:</label>
         <input v-model="newCertificate.systemuser" type="text" />
 
-        <label>Server:</label>
+        <label>{{ $t('server_column') }}:</label>
         <input v-model="newCertificate.server" type="text" />
 
-        <label>Zertifikatsname:</label>
+        <label>{{ $t('certificate_name_column') }}:</label>
         <input v-model="newCertificate.zertifikatsname" type="text" />
 
-        <label>Gültigkeit:</label>
+        <label>{{ $t('validity_column') }}:</label>
         <input v-model="newCertificate.gueltigkeit" type="date" />
 
-        <label>Zweck:</label>
+        <label>{{ $t('purpose_column') }}:</label>
         <input v-model="newCertificate.zweck" type="text" />
 
-        <label>Typ:</label>
+        <label>{{ $t('type_column') }}:</label>
         <input v-model="newCertificate.typ" type="text" />
 
         <button @click="saveCertificate">{{ $t('save') }}</button>
@@ -90,29 +90,25 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-
 import { useI18n } from 'vue-i18n'
 
-const { locale } = useI18n()
+const { locale, t } = useI18n()
 
 const switchLanguage = () => {
   locale.value = locale.value === 'de' ? 'en' : 'de'
 }
-// Aktuelle Sprache als String (für den Button)
-const currentLanguage = computed(() => locale.value)
 
-// Original-Daten aus der API (BigTable-Datensätze)
-const certificates = ref([])
-
-// Filterfelder
+// Filter und Sortierung
 const searchSystem = ref('')
 const searchStage = ref('')
 const sortOrder = ref('asc')
 const showModal = ref(false)
 const editingCertificate = ref(null)
 
-// Standardwerte für ein neues Zertifikat; der Typ wird automatisch gesetzt.
-// Beachte: System und Stage sind in einem Objekt (systemStage) abgelegt.
+// Original-Daten aus der API (BigTable-Datensätze)
+const certificates = ref([])
+
+// Standardwerte für ein neues Zertifikat (System und Stage in einem Objekt abgelegt)
 const newCertificate = ref({
   systemStage: {
     system: '',
@@ -127,18 +123,18 @@ const newCertificate = ref({
 })
 
 // Mapping für die Spaltenüberschriften
-const columnMapping = {
-  system: 'System',
-  stage: 'Stage',
-  systemuser: 'Systemuser',
-  server: 'Server',
-  zertifikatsname: 'Zertifikatsname',
-  gueltigkeit: 'Gültigkeit',
-  zweck: 'Zweck',
-  typ: 'Typ',
-}
+const columnMapping = computed(() => ({
+  system: t('system_column'),
+  stage: t('stage_column'),
+  systemuser: t('system_user_column'),
+  server: t('server_column'),
+  zertifikatsname: t('certificate_name_column'),
+  gueltigkeit: t('validity_column'),
+  zweck: t('purpose_column'),
+  typ: t('type_column'),
+}))
 
-// Beim Laden der Komponente: Hole alle Einträge aus der BigTable-API
+// Daten von der API laden
 onMounted(async () => {
   try {
     const response = await fetch('http://localhost:8080/api/bigtable')
@@ -154,26 +150,21 @@ const toggleSortOrder = () => {
   sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
 }
 
-// Berechnete Liste:
-// 1. Filtere nach dem Typ "Systemuser und deren Zertifikate".
-// 2. Mappe jeden Datensatz, sodass system und stage aus dem verschachtelten systemStage-Objekt gezogen werden
-//    und systemuser direkt.
+// Berechnete Liste: Filter, Mapping und Sortierung
 const sortedCertificates = computed(() => {
   return certificates.value
     .filter((certificate) => certificate.typ === 'Systemuser und deren Zertifikate')
-    .map((certificate) => {
-      return {
-        id: certificate.id,
-        system: certificate.systemStage ? certificate.systemStage.system : '',
-        stage: certificate.systemStage ? certificate.systemStage.stage : '',
-        systemuser: certificate.systemuser || '', // systemuser direkt aus dem Zertifikat
-        server: certificate.server,
-        zertifikatsname: certificate.zertifikatsname,
-        gueltigkeit: certificate.gueltigkeit,
-        zweck: certificate.zweck,
-        typ: certificate.typ,
-      }
-    })
+    .map((certificate) => ({
+      id: certificate.id,
+      system: certificate.systemStage ? certificate.systemStage.system : '',
+      stage: certificate.systemStage ? certificate.systemStage.stage : '',
+      systemuser: certificate.systemuser || '',
+      server: certificate.server,
+      zertifikatsname: certificate.zertifikatsname,
+      gueltigkeit: certificate.gueltigkeit,
+      zweck: certificate.zweck,
+      typ: certificate.typ,
+    }))
     .filter(
       (cert) =>
         cert.system.toLowerCase().includes(searchSystem.value.toLowerCase()) &&
@@ -186,7 +177,7 @@ const sortedCertificates = computed(() => {
     })
 })
 
-// Öffnet das Modal zum Bearbeiten oder Erstellen eines Zertifikats.
+// Öffnet das Modal zum Bearbeiten oder Erstellen eines Zertifikats
 const openModal = (certificate) => {
   if (certificate) {
     editingCertificate.value = certificate
@@ -258,17 +249,19 @@ const saveCertificate = async () => {
   showModal.value = false
 }
 
-// Löscht ein Zertifikat
+// Löscht ein Zertifikat mit Bestätigung
 const deleteEntry = async (id) => {
-  try {
-    const response = await fetch(`http://localhost:8080/api/bigtable/${id}`, {
-      method: 'DELETE',
-    })
-    if (response.ok) {
-      certificates.value = certificates.value.filter((e) => e.id !== id)
+  if (confirm(t('confirm_delete'))) {
+    try {
+      const response = await fetch(`http://localhost:8080/api/bigtable/${id}`, {
+        method: 'DELETE',
+      })
+      if (response.ok) {
+        certificates.value = certificates.value.filter((e) => e.id !== id)
+      }
+    } catch (error) {
+      console.error('Error deleting certificate:', error)
     }
-  } catch (error) {
-    console.error('Error deleting Oracle user:', error)
   }
 }
 </script>

@@ -1,48 +1,61 @@
 <template>
   <div>
-    <h1>Übersicht Proxy Zertifikate</h1>
+    <h1>{{ $t('proxy_certificates') }}</h1>
 
-    <button class="switchLanguage" @click="switchLanguage">🇩🇪 / 🇬🇧</button>
-    <!-- Filter -->
-    <input v-model="searchSystem" :placeholder="$t('filter_system')" />
-    <input v-model="searchStage" :placeholder="$t('filter_stage')" />
-    <input v-model="searchZone" :placeholder="$t('filter_zone')" />
+    <div class="controls-container">
+      <!-- Sprachumschalter -->
+      <button class="switchLanguage" @click="switchLanguage">
+        {{ locale === 'de' ? '🇬🇧' : '🇩🇪' }}
+      </button>
 
-    <!-- Sortier-Button -->
-    <button @click="toggleSortOrder">
-      {{ $t('sort_validity', { order: sortOrder === 'asc' ? $t('ascending') : $t('descending') }) }}
-    </button>
+      <!-- Filterfelder -->
+      <input v-model="searchSystem" :placeholder="$t('filter_system')" />
+      <input v-model="searchStage" :placeholder="$t('filter_stage')" />
+      <input v-model="searchZone" :placeholder="$t('filter_zone')" />
 
-    <!-- Add New Certificate Button -->
-    <button @click="openModal(null)" class="add-button">
-      {{ $t('add_cert') }}
-    </button>
+      <!-- Sortier-Button -->
+      <button @click="toggleSortOrder">
+        {{
+          $t('sort_validity', { order: sortOrder === 'asc' ? $t('ascending') : $t('descending') })
+        }}
+      </button>
+
+      <!-- Button zum Hinzufügen eines neuen Zertifikats -->
+      <button @click="openModal(null)" class="add-button">
+        {{ $t('add_cert') }}
+      </button>
+    </div>
 
     <!-- New Certificate Modal -->
     <div v-if="showModal" class="modal">
       <div class="modal-content">
-        <h2>{{ editingCertificate ? 'Edit Proxy Certificate' : 'Add New Proxy Certificate' }}</h2>
+        <h2>
+          {{ editingCertificate ? $t('edit') : $t('add_cert') }}
+        </h2>
         <!-- Eingaben -->
-        <label>System:</label>
+        <label>{{ $t('system_column') }}:</label>
         <input v-model="newCertificate.systemStage.system" type="text" />
 
-        <label>Stage:</label>
+        <label>{{ $t('stage_column') }}:</label>
         <input v-model="newCertificate.systemStage.stage" type="text" />
 
-        <label>Zone:</label>
+        <label>{{ $t('zone_column') }}:</label>
         <input v-model="newCertificate.zone" type="text" />
 
-        <label>Server:</label>
+        <label>{{ $t('server_column') }}:</label>
         <input v-model="newCertificate.server" type="text" />
 
-        <label>Installationsverzeichnis:</label>
+        <label>{{ $t('installation_directory_column') }}:</label>
         <input v-model="newCertificate.installationsverzeichnis" type="text" />
 
-        <label>Zertifikatsname:</label>
+        <label>{{ $t('certificate_name_column') }}:</label>
         <input v-model="newCertificate.zertifikatsname" type="text" />
 
-        <label>Gültigkeit:</label>
+        <label>{{ $t('validity_column') }}:</label>
         <input v-model="newCertificate.gueltigkeit" type="date" />
+
+        <label>{{ $t('type_column') }}:</label>
+        <input v-model="newCertificate.typ" type="text" />
 
         <button @click="saveCertificate">{{ $t('save') }}</button>
         <button @click="showModal = false" class="cancel-button">{{ $t('cancel') }}</button>
@@ -54,7 +67,7 @@
       <thead>
         <tr>
           <th v-for="(label, key) in columnMapping" :key="key">{{ label }}</th>
-          <th>Aktionen</th>
+          <th>{{ $t('action_column') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -66,6 +79,7 @@
           <td>{{ entry.installationsverzeichnis }}</td>
           <td>{{ entry.zertifikatsname }}</td>
           <td>{{ entry.gueltigkeit }}</td>
+          <td>Proxy Zertifikate</td>
           <td>
             <button @click="openModal(entry)">{{ $t('edit') }}</button>
             <button @click="deleteEntry(entry.id)" class="delete-button">{{ $t('delete') }}</button>
@@ -80,15 +94,15 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 
 const switchLanguage = () => {
   locale.value = locale.value === 'de' ? 'en' : 'de'
 }
 
-// Devstack-Einträge (alle bigtable-Einträge) werden geladen – wir filtern nach Typ "Proxy Zertifikate"
+// Einträge aus der API (wir filtern hier nach Typ "Proxy Zertifikate")
 const entries = ref([])
-// Mapping-Daten aus systemstage
+// Mapping-Daten aus systemstage (wird benötigt, falls systemStage nicht im Eintrag vorhanden)
 const systemStages = ref([])
 
 // Filterfelder
@@ -111,23 +125,24 @@ const newCertificate = ref({
   typ: 'Proxy Zertifikate',
 })
 
-// Mapping für die Spaltenüberschriften
-const columnMapping = {
-  system: 'System',
-  stage: 'Stage',
-  zone: 'Zone',
-  server: 'Server',
-  installationsverzeichnis: 'Installationsverzeichnis',
-  zertifikatsname: 'Zertifikatsname',
-  gueltigkeit: 'Gültigkeit',
-}
+// Mapping für die Spaltenüberschriften (dynamisch übersetzt)
+const columnMapping = computed(() => ({
+  system: t('system_column'),
+  stage: t('stage_column'),
+  zone: t('zone_column'),
+  server: t('server_column'),
+  installationsverzeichnis: t('installation_directory_column'),
+  zertifikatsname: t('certificate_name_column'),
+  gueltigkeit: t('validity_column'),
+  typ: t('type_column'),
+}))
 
-// Beim Laden der Komponente: Hole Devstack-Daten und SystemStage-Mapping
+// Beim Laden der Komponente: Hole die Daten
 onMounted(async () => {
   try {
     const resDevstack = await fetch('http://localhost:8080/api/bigtable')
     const data = await resDevstack.json()
-    // Filtern: Wir nehmen nur Einträge mit Typ "Proxy Zertifikate"
+    // Filtere nur Einträge vom Typ "Proxy Zertifikate"
     entries.value = data.filter((item) => item.typ === 'Proxy Zertifikate')
   } catch (error) {
     console.error('Error fetching proxy certificates:', error)
@@ -145,18 +160,17 @@ const toggleSortOrder = () => {
   sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
 }
 
-// Berechnete Liste: Mapping von System, Stage anhand des verschachtelten Objekts oder über systemID
+// Berechnete Liste: Für jeden Eintrag prüfen, ob ein systemStage-Objekt vorhanden ist,
+// ansonsten anhand von entry.systemID aus dem Mapping übernehmen.
 const sortedEntries = computed(() => {
   return entries.value
     .map((entry) => {
       let system = ''
       let stage = ''
-      // Verwende vorhandenes systemStage-Objekt, falls vorhanden
       if (entry.systemStage && entry.systemStage.system && entry.systemStage.stage) {
         system = entry.systemStage.system
         stage = entry.systemStage.stage
       } else if (entry.systemID) {
-        // Konvertiere systemID in Zahl, falls es als String vorliegt
         const idNum = Number(entry.systemID)
         const mapping = systemStages.value.find(
           (item) => Number(item.systemID) === idNum || Number(item.id) === idNum,
@@ -190,14 +204,14 @@ const sortedEntries = computed(() => {
     })
 })
 
-// Öffnet das Modal zum Bearbeiten oder Erstellen eines Zertifikats.
+// Öffnet das Modal zum Bearbeiten oder Erstellen eines Zertifikats
 const openModal = (entry) => {
   if (entry) {
     editingCertificate.value = entry
     newCertificate.value = {
       systemStage: { system: entry.system, stage: entry.stage },
       zone: entry.zone,
-      systemuser: entry.systemuser, // könnte leer sein, da Proxy-Zertifikate eventuell keinen Systemuser benötigen, je nach Anforderung
+      systemuser: entry.systemuser, // Bei Proxy Zertifikaten könnte dieser leer sein
       server: entry.server,
       installationsverzeichnis: entry.installationsverzeichnis,
       zertifikatsname: entry.zertifikatsname,
@@ -258,17 +272,38 @@ const saveCertificate = async () => {
   showModal.value = false
 }
 
-// Löscht ein Zertifikat.
+// Löscht ein Zertifikat mit Löschbestätigung
 const deleteEntry = async (id) => {
-  try {
-    const response = await fetch(`http://localhost:8080/api/bigtable/${id}`, {
-      method: 'DELETE',
-    })
-    if (response.ok) {
-      entries.value = entries.value.filter((e) => e.id !== id)
+  if (confirm(t('confirm_delete'))) {
+    try {
+      const response = await fetch(`http://localhost:8080/api/bigtable/${id}`, {
+        method: 'DELETE',
+      })
+      if (response.ok) {
+        entries.value = entries.value.filter((e) => e.id !== id)
+      }
+    } catch (error) {
+      console.error('Error deleting proxy certificate:', error)
     }
-  } catch (error) {
-    console.error('Error deleting proxy certificate:', error)
   }
 }
 </script>
+
+<style scoped>
+.controls-container {
+  display: flex;
+  align-items: center; /* Vertikale Zentrierung der Elemente */
+  gap: 5px; /* Abstand zwischen den Elementen */
+}
+
+/* Optional: Zusätzliche Stile für die Buttons und Eingabefelder */
+.controls-container input {
+  padding: 5px;
+  font-size: 12px;
+}
+
+.controls-container button {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+</style>

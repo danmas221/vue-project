@@ -1,8 +1,12 @@
 <template>
   <div>
-    <h1>MQ Systemuser und Zertifikate</h1>
+    <h1>{{ $t('mq_systemuser_certificates') }}</h1>
 
-    <button class="switchLanguage" @click="switchLanguage">🇩🇪 / 🇬🇧</button>
+    <button class="switchLanguage" @click="switchLanguage">
+      <!-- Zeigt 🇬🇧, wenn Deutsch aktiv ist, sonst 🇩🇪 -->
+      {{ locale === 'de' ? '🇬🇧' : '🇩🇪' }}
+    </button>
+
     <!-- Filter -->
     <input v-model="searchSystem" :placeholder="$t('filter_system')" />
     <input v-model="searchStage" :placeholder="$t('filter_stage')" />
@@ -20,35 +24,39 @@
     <!-- New Certificate Modal -->
     <div v-if="showModal" class="modal">
       <div class="modal-content">
-        <h2>{{ editingCertificate ? 'Edit MQ Certificate' : 'Add New MQ Certificate' }}</h2>
+        <h2>{{ editingCertificate ? $t('edit') : $t('add_cert') }}</h2>
 
-        <!-- Eingaben -->
-        <label>System:</label>
+        <!-- Formularfelder -->
+        <label>{{ $t('system_column') }}:</label>
         <input v-model="newCertificate.systemStage.system" type="text" />
 
-        <label>Stage:</label>
+        <label>{{ $t('stage_column') }}:</label>
         <input v-model="newCertificate.systemStage.stage" type="text" />
 
-        <label>MQ:</label>
+        <label>{{ $t('mq_column') }}:</label>
         <input v-model="newCertificate.mq" type="text" />
 
-        <label>Channel:</label>
+        <label>{{ $t('channel_column') }}:</label>
         <input v-model="newCertificate.channel" type="text" />
 
-        <label>Systemuser:</label>
+        <label>{{ $t('system_user_column') }}:</label>
         <input v-model="newCertificate.systemuser" type="text" />
 
-        <label>Server:</label>
+        <label>{{ $t('server_column') }}:</label>
         <input v-model="newCertificate.server" type="text" />
 
-        <label>Zertifikatsname:</label>
+        <label>{{ $t('certificate_name_column') }}:</label>
         <input v-model="newCertificate.zertifikatsname" type="text" />
 
-        <label>Issuer:</label>
+        <label>{{ $t('issuer') }}:</label>
         <input v-model="newCertificate.issuer" type="text" />
 
-        <label>Gültigkeit:</label>
+        <label>{{ $t('validity_column') }}:</label>
         <input v-model="newCertificate.gueltigkeit" type="date" />
+
+        <!-- Der Typ ist fest (nicht editierbar) -->
+        <label>{{ $t('type_column') }}:</label>
+        <input v-model="newCertificate.typ" type="text" disabled />
 
         <button @click="saveCertificate">{{ $t('save') }}</button>
         <button @click="showModal = false" class="cancel-button">{{ $t('cancel') }}</button>
@@ -59,8 +67,10 @@
     <table>
       <thead>
         <tr>
-          <th v-for="(label, key) in columnMapping" :key="key">{{ label }}</th>
-          <th>Aktionen</th>
+          <th v-for="(label, key) in columnMapping" :key="key">
+            {{ label }}
+          </th>
+          <th>{{ $t('action_column') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -74,6 +84,7 @@
           <td>{{ entry.zertifikatsname }}</td>
           <td>{{ entry.issuer }}</td>
           <td>{{ entry.gueltigkeit }}</td>
+          <td>{{ entry.typ }}</td>
           <td>
             <button @click="openModal(entry)">{{ $t('edit') }}</button>
             <button @click="deleteEntry(entry.id)" class="delete-button">{{ $t('delete') }}</button>
@@ -88,18 +99,18 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 
 const switchLanguage = () => {
   locale.value = locale.value === 'de' ? 'en' : 'de'
 }
 
-// MQ-Zertifikats-Daten aus der API (angenommen in der Tabelle bigtable mit Typ "MQ Systemuser und Zertifikate")
+// MQ-Zertifikats-Daten (wir filtern Einträge mit Typ "MQ Systemuser und Zertifikate")
 const entries = ref([])
-// SystemStage-Mapping-Daten aus dem API
+// Mapping-Daten aus systemstage (falls systemStage nicht direkt im Eintrag vorhanden ist)
 const systemStages = ref([])
 
-// Filterfelder
+// Filterfelder und Status
 const searchSystem = ref('')
 const searchStage = ref('')
 const sortOrder = ref('asc')
@@ -116,31 +127,30 @@ const newCertificate = ref({
   zertifikatsname: '',
   issuer: '',
   gueltigkeit: '',
-  // Der Typ wird fest auf "MQ Systemuser und Zertifikate" gesetzt
   typ: 'MQ Systemuser und Zertifikate',
 })
 
-// Mapping für die Spaltenüberschriften
-const columnMapping = {
-  system: 'System',
-  stage: 'Stage',
-  mq: 'MQ',
-  channel: 'Channel',
-  systemuser: 'Systemuser',
-  server: 'Server',
-  zertifikatsname: 'Zertifikatsname',
-  issuer: 'Issuer',
-  gueltigkeit: 'Gültigkeit',
-}
+// Dynamisch übersetztes Mapping für die Spaltenüberschriften
+const columnMapping = computed(() => ({
+  system: t('system_column'),
+  stage: t('stage_column'),
+  mq: t('mq_column'),
+  channel: t('channel_column'),
+  systemuser: t('system_user_column'),
+  server: t('server_column'),
+  zertifikatsname: t('certificate_name_column'),
+  issuer: t('issuer'),
+  gueltigkeit: t('validity_column'),
+  typ: t('type_column'),
+}))
 
-// Beim Laden der Komponente: Hole die MQ-Zertifikate und das SystemStage-Mapping
+// Daten von der API laden
 onMounted(async () => {
   try {
     const resMQ = await fetch('http://localhost:8080/api/bigtable')
-    // Filtern: Wir nehmen nur die Einträge mit Typ "MQ Systemuser und Zertifikate"
-    entries.value = (await resMQ.json()).filter(
-      (item) => item.typ === 'MQ Systemuser und Zertifikate',
-    )
+    const data = await resMQ.json()
+    // Nur Einträge mit Typ "MQ Systemuser und Zertifikate" übernehmen
+    entries.value = data.filter((item) => item.typ === 'MQ Systemuser und Zertifikate')
   } catch (error) {
     console.error('Error fetching MQ certificates:', error)
   }
@@ -157,8 +167,8 @@ const toggleSortOrder = () => {
   sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
 }
 
-// Berechnete Liste: Für jeden Eintrag prüfen wir, ob ein verschachteltes systemStage vorhanden ist.
-// Falls nicht, versuchen wir anhand von entry.systemID (als Zahl) im systemStages-Mapping den korrekten System- und Stage-Wert zu ermitteln.
+// Berechnete Liste: Für jeden Eintrag prüfen, ob ein systemStage-Objekt vorhanden ist.
+// Falls nicht, anhand von entry.systemID im Mapping den korrekten System- und Stage-Wert ermitteln.
 const sortedEntries = computed(() => {
   return entries.value
     .map((entry) => {
@@ -168,9 +178,8 @@ const sortedEntries = computed(() => {
         system = entry.systemStage.system
         stage = entry.systemStage.stage
       } else if (entry.systemID) {
-        const idNum = Number(entry.systemID)
         const mapping = systemStages.value.find(
-          (item) => Number(item.systemID) === idNum || Number(item.id) === idNum,
+          (item) => Number(item.systemID) === Number(entry.systemID),
         )
         if (mapping) {
           system = mapping.system
@@ -188,6 +197,7 @@ const sortedEntries = computed(() => {
         zertifikatsname: entry.zertifikatsname || '',
         issuer: entry.issuer || '',
         gueltigkeit: entry.gueltigkeit || '',
+        typ: entry.typ || 'MQ Systemuser und Zertifikate',
       }
     })
     .filter(
@@ -202,7 +212,7 @@ const sortedEntries = computed(() => {
     })
 })
 
-// Öffnet das Modal zum Bearbeiten oder Erstellen eines Zertifikats.
+// Öffnet das Modal zum Bearbeiten oder Erstellen eines Zertifikats
 const openModal = (entry) => {
   if (entry) {
     editingCertificate.value = entry
@@ -234,7 +244,7 @@ const openModal = (entry) => {
   showModal.value = true
 }
 
-// Speichert (hinzufügen oder updaten) ein Zertifikat.
+// Speichert (hinzufügen oder updaten) ein Zertifikat
 const saveCertificate = async () => {
   if (editingCertificate.value) {
     try {
@@ -272,17 +282,19 @@ const saveCertificate = async () => {
   showModal.value = false
 }
 
-// Löscht ein Zertifikat.
+// Löscht ein Zertifikat mit Löschbestätigung
 const deleteEntry = async (id) => {
-  try {
-    const response = await fetch(`http://localhost:8080/api/bigtable/${id}`, {
-      method: 'DELETE',
-    })
-    if (response.ok) {
-      entries.value = entries.value.filter((e) => e.id !== id)
+  if (confirm(t('confirm_delete'))) {
+    try {
+      const response = await fetch(`http://localhost:8080/api/bigtable/${id}`, {
+        method: 'DELETE',
+      })
+      if (response.ok) {
+        entries.value = entries.value.filter((e) => e.id !== id)
+      }
+    } catch (error) {
+      console.error('Error deleting MQ certificate:', error)
     }
-  } catch (error) {
-    console.error('Error deleting MQ certificate:', error)
   }
 }
 </script>

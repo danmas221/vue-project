@@ -1,76 +1,71 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterView } from 'vue-router'
 import NavToggle from './views/NavToggle.vue'
 </script>
 
 <template>
-  <header>
-    <div class="wrapper">
+  <div class="layout-container">
+    <!-- Linke Seitenleiste -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <!-- VW Logo (Pfad anpassen, falls nötig) -->
+        <img
+          src="C:/Users/VWM7U5O/my-vue-project/src/assets/logo.png"
+          alt="VW Logo"
+          class="vw-logo"
+        />
+        <h1>Certificate Manager App</h1>
+      </div>
+      <!-- Navigation (NavToggle-Komponente) -->
       <NavToggle />
-    </div>
-  </header>
+    </aside>
 
-  <RouterView />
+    <!-- Hauptinhalt -->
+    <main class="main-content">
+      <RouterView />
+    </main>
+  </div>
 </template>
 
 <style scoped>
-body {
-  background-color: var(--color-background); /* Dynamischer Hintergrund */
-  font-family: 'Roboto', sans-serif;
-  color: var(--color-text); /* Dynamische Textfarbe */
+/* Gesamtlayout*/
+.layout-container {
+  display: flex;
+  height: 100vh; /* Gesamte Höhe des Viewports */
 }
 
-header {
-  line-height: 1.5;
-  max-height: 100vh;
-}
-
-nav {
-  border: 1px solid var(--color-border);
-  padding: 1.5rem;
-  border-radius: 8px;
-  width: 100px;
-  font-size: 14px;
-  text-align: center;
-  margin-top: 1rem;
+/* Linke Seitenleiste */
+.sidebar {
+  width: 200px;
+  background-color: #ffffff;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-}
-.nav-title {
-  font-size: 1.2rem;
-  font-weight: bold;
-  margin-bottom: 1rem; /* Mehr Abstand zu den Links */
+  align-items: center;
+  flex-shrink: 0;
 }
 
-nav a.router-link-exact-active {
-  color: var(--color-text);
+/* Header in der Seitenleiste */
+.sidebar-header {
+  text-align: center;
+  margin-top: 20px; /* Weniger Abstand oben */
+  margin-bottom: 20px; /* Abstand zu den Navigationselementen */
 }
 
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
-
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
+/* VW Logo */
+.vw-logo {
+  position: relative;
+  width: 140px;
+  height: 80px;
   margin-bottom: 10px;
 }
 
-nav a:first-of-type {
-  border: 0;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 5);
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
+/* Hauptbereich – nimmt den restlichen Platz ein */
+.main-content {
+  flex-grow: 1;
+  width: calc(100% - 200px); /* Berechnet Platz für den Hauptinhalt */
+  max-width: 1000px;
+  margin-left: 8%; /* Gleicht Sidebar-Breite aus */
+  padding: 2%;
 }
 </style>

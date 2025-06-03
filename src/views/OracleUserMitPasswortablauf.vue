@@ -1,45 +1,52 @@
 <template>
   <div>
-    <h1>Oracle User mit Passwortablauf</h1>
+    <h1>{{ $t('oracle_user_password_expiration') }}</h1>
 
-    <button class="switchLanguage" @click="switchLanguage">🇩🇪 / 🇬🇧</button>
-    <!-- Filter -->
+    <button class="switchLanguage" @click="switchLanguage">
+      <!-- Zeigt 🇬🇧, wenn Deutsch aktiv ist, sonst 🇩🇪 -->
+      {{ locale === 'de' ? '🇬🇧' : '🇩🇪' }}
+    </button>
+
+    <!-- Filterfelder -->
     <input v-model="searchSystem" :placeholder="$t('filter_system')" />
     <input v-model="searchStage" :placeholder="$t('filter_stage')" />
 
-    <!-- Sortier-Button -->
+    <!-- Sortier-Button (Sortierung nach Gültigkeit) -->
     <button @click="toggleSortOrder">
       {{ $t('sort_validity', { order: sortOrder === 'asc' ? $t('ascending') : $t('descending') }) }}
     </button>
 
-    <!-- Add New Certificate Button -->
+    <!-- Button zum Hinzufügen eines neuen Oracle Users -->
     <button @click="openModal(null)" class="add-button">
       {{ $t('add_cert') }}
     </button>
 
-    <!-- New User Modal -->
+    <!-- Modal zum Erstellen/Bearbeiten -->
     <div v-if="showModal" class="modal">
       <div class="modal-content">
-        <h2>{{ editingUser ? 'Edit Oracle User' : 'Add New Oracle User' }}</h2>
+        <h2>{{ editingUser ? $t('edit') : $t('add_cert') }}</h2>
 
-        <!-- Eingaben -->
-        <label>System:</label>
+        <!-- Formularfelder -->
+        <label>{{ $t('system_column') }}:</label>
         <input v-model="newUser.systemStage.system" type="text" />
 
-        <label>Stage:</label>
+        <label>{{ $t('stage_column') }}:</label>
         <input v-model="newUser.systemStage.stage" type="text" />
 
-        <label>Oracle User:</label>
+        <label>{{ $t('oracle-user_column') }}:</label>
         <input v-model="newUser.oracleUser" type="text" />
 
-        <label>Server:</label>
+        <label>{{ $t('server_column') }}:</label>
         <input v-model="newUser.server" type="text" />
 
-        <label>Gültigkeit:</label>
+        <label>{{ $t('validity_column') }}:</label>
         <input v-model="newUser.gueltigkeit" type="date" />
 
-        <label>Zweck:</label>
+        <label>{{ $t('purpose_column') }}:</label>
         <input v-model="newUser.zweck" type="text" />
+
+        <label>{{ $t('type_column') }}:</label>
+        <input v-model="newUser.typ" type="text" disabled />
 
         <button @click="saveUser">{{ $t('save') }}</button>
         <button @click="showModal = false" class="cancel-button">{{ $t('cancel') }}</button>
@@ -51,7 +58,7 @@
       <thead>
         <tr>
           <th v-for="(label, key) in columnMapping" :key="key">{{ label }}</th>
-          <th>Aktionen</th>
+          <th>{{ $t('action_column') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -62,9 +69,12 @@
           <td>{{ entry.server }}</td>
           <td>{{ entry.gueltigkeit }}</td>
           <td>{{ entry.zweck }}</td>
+          <td>{{ entry.typ }}</td>
           <td>
             <button @click="openModal(entry)">{{ $t('edit') }}</button>
-            <button @click="deleteEntry(entry.id)" class="delete-button">{{ $t('delete') }}</button>
+            <button @click="deleteEntry(entry.id)" class="delete-button">
+              {{ $t('delete') }}
+            </button>
           </td>
         </tr>
       </tbody>
@@ -76,18 +86,19 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 
+// Sprache umschalten
 const switchLanguage = () => {
   locale.value = locale.value === 'de' ? 'en' : 'de'
 }
 
-// Oracle User mit Passwortablauf-Daten aus der API (angenommen in der Tabelle bigtable mit Typ "Oracle User mit Passwortablauf")
+// Oracle User mit Passwortablauf-Daten aus der API (Filtern nach Typ "Oracle User mit Passwortablauf")
 const entries = ref([])
-// SystemStage-Mapping-Daten aus dem API
+// SystemStage-Mapping-Daten (wird genutzt, falls im Eintrag kein systemStage-Objekt enthalten ist)
 const systemStages = ref([])
 
-// Filterfelder
+// Filterfelder und Statusvariablen
 const searchSystem = ref('')
 const searchStage = ref('')
 const sortOrder = ref('asc')
@@ -105,24 +116,24 @@ const newUser = ref({
   typ: 'Oracle User mit Passwortablauf',
 })
 
-// Mapping für die Spaltenüberschriften
-const columnMapping = {
-  system: 'System',
-  stage: 'Stage',
-  oracleUser: 'Oracle User',
-  server: 'Server',
-  gueltigkeit: 'Gültigkeit',
-  zweck: 'Zweck',
-}
+// Dynamisch übersetztes Mapping für die Spaltenüberschriften
+const columnMapping = computed(() => ({
+  system: t('system_column'),
+  stage: t('stage_column'),
+  oracleUser: t('oracle-user_column'),
+  server: t('server_column'),
+  validity: t('validity_column'),
+  purpose: t('purpose_column'),
+  typ: t('type_column'),
+}))
 
-// Beim Laden der Komponente: Hole die Oracle User und das SystemStage-Mapping
+// Beim Laden der Komponente: Hole Oracle User-Daten und SystemStage-Mapping
 onMounted(async () => {
   try {
     const resOracle = await fetch('http://localhost:8080/api/bigtable')
-    // Filtern: Wir nehmen nur die Einträge mit Typ "Oracle User mit Passwortablauf"
-    entries.value = (await resOracle.json()).filter(
-      (item) => item.typ === 'Oracle User mit Passwortablauf',
-    )
+    const data = await resOracle.json()
+    // Filter: Nur Einträge mit Typ "Oracle User mit Passwortablauf" übernehmen
+    entries.value = data.filter((item: any) => item.typ === 'Oracle User mit Passwortablauf')
   } catch (error) {
     console.error('Error fetching Oracle users:', error)
   }
@@ -139,11 +150,11 @@ const toggleSortOrder = () => {
   sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
 }
 
-// Berechnete Liste: Für jeden Eintrag prüfen wir, ob ein verschachteltes systemStage vorhanden ist.
-// Falls nicht, versuchen wir anhand von entry.systemID (als Zahl) im systemStages-Mapping den korrekten System- und Stage-Wert zu ermitteln.
+// Berechnete Liste: Für jeden Eintrag wird geprüft, ob ein systemStage-Objekt vorhanden ist.
+// Falls nicht, wird anhand von entry.systemID der korrekte System- und Stage-Wert aus systemStages ermittelt.
 const sortedEntries = computed(() => {
   return entries.value
-    .map((entry) => {
+    .map((entry: any) => {
       let system = ''
       let stage = ''
       if (entry.systemStage && entry.systemStage.system && entry.systemStage.stage) {
@@ -152,7 +163,7 @@ const sortedEntries = computed(() => {
       } else if (entry.systemID) {
         const idNum = Number(entry.systemID)
         const mapping = systemStages.value.find(
-          (item) => Number(item.systemID) === idNum || Number(item.id) === idNum,
+          (item: any) => Number(item.systemID) === idNum || Number(item.id) === idNum,
         )
         if (mapping) {
           system = mapping.system
@@ -167,14 +178,15 @@ const sortedEntries = computed(() => {
         server: entry.server || '',
         gueltigkeit: entry.gueltigkeit || '',
         zweck: entry.zweck || '',
+        typ: entry.typ || 'Oracle User mit Passwortablauf',
       }
     })
     .filter(
-      (entry) =>
+      (entry: any) =>
         entry.system.toLowerCase().includes(searchSystem.value.toLowerCase()) &&
         entry.stage.toLowerCase().includes(searchStage.value.toLowerCase()),
     )
-    .sort((a, b) => {
+    .sort((a: any, b: any) => {
       const dateA = new Date(a.gueltigkeit).getTime()
       const dateB = new Date(b.gueltigkeit).getTime()
       return sortOrder.value === 'asc' ? dateA - dateB : dateB - dateA
@@ -182,7 +194,7 @@ const sortedEntries = computed(() => {
 })
 
 // Öffnet das Modal zum Bearbeiten oder Erstellen eines Oracle Users.
-const openModal = (entry) => {
+const openModal = (entry: any) => {
   if (entry) {
     editingUser.value = entry
     newUser.value = {
@@ -218,7 +230,7 @@ const saveUser = async () => {
       })
       if (response.ok) {
         const updatedEntry = await response.json()
-        const index = entries.value.findIndex((e) => e.id === updatedEntry.id)
+        const index = entries.value.findIndex((e: any) => e.id === updatedEntry.id)
         entries.value[index] = updatedEntry
       }
     } catch (error) {
@@ -242,17 +254,19 @@ const saveUser = async () => {
   showModal.value = false
 }
 
-// Löscht einen Oracle User.
-const deleteEntry = async (id) => {
-  try {
-    const response = await fetch(`http://localhost:8080/api/bigtable/${id}`, {
-      method: 'DELETE',
-    })
-    if (response.ok) {
-      entries.value = entries.value.filter((e) => e.id !== id)
+// Löscht einen Oracle User mit Löschbestätigung.
+const deleteEntry = async (id: number) => {
+  if (confirm(t('confirm_delete'))) {
+    try {
+      const response = await fetch(`http://localhost:8080/api/bigtable/${id}`, {
+        method: 'DELETE',
+      })
+      if (response.ok) {
+        entries.value = entries.value.filter((e: any) => e.id !== id)
+      }
+    } catch (error) {
+      console.error('Error deleting Oracle user:', error)
     }
-  } catch (error) {
-    console.error('Error deleting Oracle user:', error)
   }
 }
 </script>
